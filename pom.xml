@@ -32,6 +32,18 @@
     <developerConnection>scm:git:git@github.com:raydac/jute.git</developerConnection>
   </scm>
     
+  <developers>
+    <developer>
+      <name>Igor Maznitsa</name>
+      <id>raydac</id>
+      <email>rrg4400@gmail.com</email>
+      <url>http://www.igormaznitsa.com</url>
+      <roles>
+        <role>author</role>
+      </roles>
+    </developer>
+  </developers>
+    
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
