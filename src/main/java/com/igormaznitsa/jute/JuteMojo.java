@@ -44,63 +44,133 @@ import org.zeroturnaround.exec.ProcessExecutor;
  *
  * @author Igor Maznitsa (http://www.igormaznitsa.com)
  */
-@Mojo(name = "jute", defaultPhase = LifecyclePhase.TEST, threadSafe = true, requiresProject = true, requiresDependencyResolution = ResolutionScope.TEST)
+@Mojo(name = "jute", defaultPhase = LifecyclePhase.TEST, threadSafe = true, requiresDependencyResolution = ResolutionScope.TEST)
 public class JuteMojo extends AbstractMojo {
 
   private static final String JUNIT_SINGLE_RUNNER_CLASS = SingleTestMethodRunner.class.getName();
 
   @Parameter(defaultValue = "${project}", readonly = true)
-  protected MavenProject project;
+  private MavenProject project;
+
   @Parameter(defaultValue = "${session}", readonly = true)
-  protected MavenSession session;
+  private MavenSession session;
 
   /**
    * List of test method names to be included into testing. Wildcard pattern can
    * be used.
    */
   @Parameter(name = "includeTests")
-  protected String[] includeTests;
+  private String[] includeTests;
+
   /**
    * List of test method names to be excluded from testing. Wildcard pattern can
    * be used.
    */
   @Parameter(name = "excludeTests")
-  protected String[] excludeTests;
+  private String[] excludeTests;
+
   /**
    * List of java test files to be included into testing. Ant path pattern can
    * be used.
    */
   @Parameter(name = "includes")
-  protected String[] includes;
+  private String[] includes;
+
   /**
    * List of java test files to be excluded from testing. Ant path pattern can
    * be uses.
    */
   @Parameter(name = "excludes")
-  protected String[] excludes;
+  private String[] excludes;
+
   /**
-   * Path to java interpreter either JRE folder or executable file.
+   * Path to JRE folder to be used for tests, also path to executable file can
+   * be provided. By default the Maven JRE will be used.
    */
   @Parameter(name = "java")
-  protected String java;
+  private String java;
+
   /**
    * Show extra information during processing.
    */
   @Parameter(name = "verbose", defaultValue = "false")
-  protected boolean verbose;
+  private boolean verbose;
+
   /**
    * Timeout for testing process in milliseconds.
    */
   @Parameter(name = "timeout", defaultValue = "0")
-  protected long timeout;
+  private long timeout;
 
   /**
    * Map of environment variables to be provided to staring processes.
    */
   @Parameter(name = "env")
-  protected Map<String, String> env;
+  private Properties env;
 
-  private static List<String> prepareListOfFiles(final File rootFolder, final String[] includes, final String[] excludes) {
+  /**
+   * Map of Java system properties which will be provided to started process.
+   */
+  @Parameter(name = "javaProperties")
+  private Properties javaProperties;
+
+  /**
+   * Enforce output of test process terminal streams.
+   */
+  @Parameter(name = "enforcePrintConsole")
+  private boolean enforcePrintConsole;
+
+  /**
+   * Provides extra options for JVM.
+   */
+  @Parameter(name = "jvmOptions")
+  private String[] jvmOptions;
+
+  public String[] getJvmOptions() {
+    return this.jvmOptions == null ? null : this.jvmOptions.clone();
+  }
+
+  public String[] getIncludeTests() {
+    return this.includeTests == null ? null : this.includeTests.clone();
+  }
+
+  public String[] getExcludeTests() {
+    return this.excludeTests == null ? null : this.excludeTests.clone();
+  }
+
+  public String[] getIncludes() {
+    return this.includes == null ? null : this.includes.clone();
+  }
+
+  public String[] getExcludes() {
+    return this.excludes == null ? null : this.excludes.clone();
+  }
+
+  public Properties getJavaProperties() {
+    return this.javaProperties;
+  }
+
+  public String getJava() {
+    return this.java;
+  }
+
+  public boolean isVerbose() {
+    return this.verbose;
+  }
+
+  public long getTimeout() {
+    return this.timeout;
+  }
+
+  public boolean isEnforcePrintConsole() {
+    return this.enforcePrintConsole;
+  }
+
+  public Properties getEnv() {
+    return this.env;
+  }
+
+  private static List<String> prepareListOfFiles(final Log log, final boolean verbose, final File rootFolder, final String[] includes, final String[] excludes) {
     final List<String> result = new ArrayList<String>();
 
     final Iterator<File> iterator = FileUtils.iterateFiles(rootFolder, new IOFileFilter() {
@@ -108,11 +178,15 @@ public class JuteMojo extends AbstractMojo {
 
       @Override
       public boolean accept(final File file) {
+        if (file.isDirectory()) {
+          return false;
+        }
+
         final String path = file.getAbsolutePath();
         boolean include = false;
 
         if (path.endsWith(".class")) {
-          if (includes != null) {
+          if (includes.length != 0) {
             for (final String patteen : includes) {
               if (matcher.match(patteen, path)) {
                 include = true;
@@ -124,7 +198,7 @@ public class JuteMojo extends AbstractMojo {
             include = true;
           }
 
-          if (include && excludes != null) {
+          if (include && excludes.length != 0) {
             for (final String pattern : excludes) {
               if (matcher.match(pattern, path)) {
                 include = false;
@@ -133,6 +207,11 @@ public class JuteMojo extends AbstractMojo {
             }
           }
         }
+
+        if (!include && verbose) {
+          log.info("File " + path + " excluded");
+        }
+
         return include;
       }
 
@@ -140,7 +219,7 @@ public class JuteMojo extends AbstractMojo {
       public boolean accept(final File dir, final String name) {
         final String path = name;
         boolean include = false;
-        if (includes != null) {
+        if (includes.length != 0) {
           for (final String pattern : includes) {
             if (matcher.match(pattern, path)) {
               include = true;
@@ -152,7 +231,7 @@ public class JuteMojo extends AbstractMojo {
           include = true;
         }
 
-        if (include && excludes != null) {
+        if (include && excludes.length != 0) {
           for (final String pattern : excludes) {
             if (matcher.match(pattern, path)) {
               include = false;
@@ -161,12 +240,24 @@ public class JuteMojo extends AbstractMojo {
           }
         }
 
+        if (!include && verbose) {
+          log.info("Folder " + name + " excluded");
+        }
+
         return include;
       }
     }, DirectoryFileFilter.DIRECTORY);
 
     while (iterator.hasNext()) {
-      result.add(iterator.next().getAbsolutePath());
+      final String detectedFile = iterator.next().getAbsolutePath();
+      if (verbose) {
+        log.info("Found potential test class : " + detectedFile);
+      }
+      result.add(detectedFile);
+    }
+
+    if (result.isEmpty()) {
+      log.warn("No test files found in " + rootFolder.getAbsolutePath());
     }
 
     return result;
@@ -224,8 +315,22 @@ public class JuteMojo extends AbstractMojo {
     return result.toString();
   }
 
+  private static String collectConsoleData(final ByteArrayOutputStream out, final ByteArrayOutputStream err) {
+    final StringBuilder record = new StringBuilder();
+    record.append(">>>Console").append(System.lineSeparator()).append(new String(out.toByteArray(), Charset.defaultCharset())).append(System.lineSeparator());
+    record.append(">>>Errors").append(System.lineSeparator()).append(new String(err.toByteArray(), Charset.defaultCharset()));
+    return record.toString();
+  }
+
   @Override
   public void execute() throws MojoExecutionException {
+    final File testFolder = new File(this.project.getBuild().getTestOutputDirectory());
+    if (!testFolder.isDirectory()) {
+      getLog().info("No test folder");
+      return;
+    }
+    getLog().info("Project test folder : " + testFolder.getAbsolutePath());
+
     final File pathToMojoJar;
     try {
       pathToMojoJar = new File(this.getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
@@ -240,7 +345,8 @@ public class JuteMojo extends AbstractMojo {
     }
 
     final String testClassPath = makeClassPath(pathToMojoJar, new Classpath(project, new File(session.getLocalRepository().getBasedir()), "test"));
-    final List<String> potentialTestFiles = prepareListOfFiles(new File(project.getBuild().getTestOutputDirectory()), normalizeStringArray(this.includes), normalizeStringArray(this.excludes));
+
+    final List<String> potentialTestFiles = prepareListOfFiles(getLog(), this.verbose, testFolder, normalizeStringArray(this.includes), normalizeStringArray(this.excludes));
     final List<String> extractedNonIgnoredtestMethods = new ArrayList<String>();
     try {
       extractAllNonIgnoredTestMethods(potentialTestFiles, extractedNonIgnoredtestMethods);
@@ -252,9 +358,11 @@ public class JuteMojo extends AbstractMojo {
     final long startTime = System.currentTimeMillis();
 
     if (this.verbose) {
+      getLog().info("Java options: " + (this.jvmOptions == null ? "<not provided>" : Arrays.toString(this.jvmOptions)));
       getLog().info("Java interpreter path: " + javaInterpreter.getAbsolutePath());
       getLog().info("Test class path: " + testClassPath);
       getLog().info("Detected " + extractedNonIgnoredtestMethods.size() + " test method(s)");
+      getLog().info(this.timeout < 0L ? "No Timeout" : "Timeout is " + this.timeout + " ms");
     }
 
     int startedCounter = 0;
@@ -295,12 +403,52 @@ public class JuteMojo extends AbstractMojo {
     }
   }
 
+  private static String makeTerminalRecord(final ByteArrayOutputStream out, final ByteArrayOutputStream err) {
+    final StringBuilder record = new StringBuilder();
+    record.append(System.lineSeparator()).append("-----------------------").append(System.lineSeparator());
+    record.append(collectConsoleData(out, err));
+    record.append(System.lineSeparator()).append("-----------------------");
+    return record.toString();
+  }
+
   private boolean executeTest(final String javaPath, final int maxTestNameLength, final String classPath, final String methodToExecute) throws IOException, InterruptedException {
-    final ProcessExecutor exec = new ProcessExecutor(javaPath, "-classpath", classPath, JUNIT_SINGLE_RUNNER_CLASS, methodToExecute);
+    final List<String> arguments = new ArrayList<String>();
+    arguments.add(javaPath);
+
+    if (this.jvmOptions != null && this.jvmOptions.length != 0) {
+      for (final String opt : this.jvmOptions) {
+        arguments.add(opt);
+      }
+    }
+
+    if (this.javaProperties != null && !this.javaProperties.isEmpty()) {
+      for (final Map.Entry<Object, Object> entry : this.javaProperties.entrySet()) {
+        final String key = (String) entry.getKey();
+        final String value = (String) entry.getValue();
+        arguments.add("-D" + key + "=" + value);
+      }
+    }
+
+    arguments.add("-classpath");
+    arguments.add(classPath);
+
+    arguments.add(JUNIT_SINGLE_RUNNER_CLASS);
+    arguments.add(methodToExecute);
+
+    final StringBuilder buffer = new StringBuilder();
+    for (final String s : arguments) {
+      if (buffer.length() > 0) {
+        buffer.append(' ');
+      }
+      buffer.append(s);
+    }
+    getLog().debug(buffer.toString());
+
+    final ProcessExecutor exec = new ProcessExecutor(arguments.toArray(new String[arguments.size()]));
 
     if (this.env != null && !this.env.isEmpty()) {
-      for (final Map.Entry<String, String> r : this.env.entrySet()) {
-        exec.environment(r.getKey(), r.getValue());
+      for (final Map.Entry<Object, Object> entry : this.env.entrySet()) {
+        exec.environment((String) entry.getKey(), (String) entry.getValue());
       }
     }
 
@@ -313,7 +461,7 @@ public class JuteMojo extends AbstractMojo {
     }
 
     final ProcessExecutor executor = exec.destroyOnExit().redirectError(consoleErrBuffer).redirectOutput(consoleBuffer);
-    int result = 0;
+    int result;
     boolean statusPrinted = false;
     if (this.timeout > 0L) {
       try {
@@ -333,6 +481,9 @@ public class JuteMojo extends AbstractMojo {
       if (!statusPrinted) {
         record.append("OK");
       }
+      if (this.enforcePrintConsole) {
+        record.append(makeTerminalRecord(consoleBuffer, consoleErrBuffer));
+      }
       getLog().info(record.toString());
       return true;
     }
@@ -340,10 +491,7 @@ public class JuteMojo extends AbstractMojo {
       if (!statusPrinted) {
         record.append("ERROR");
       }
-      record.append(System.lineSeparator()).append("-----------------------").append(System.lineSeparator());
-      record.append(">>>Console").append(System.lineSeparator()).append(new String(consoleBuffer.toByteArray(), Charset.defaultCharset())).append(System.lineSeparator());
-      record.append(">>>Errors").append(System.lineSeparator()).append(new String(consoleErrBuffer.toByteArray(), Charset.defaultCharset())).append(System.lineSeparator());
-      record.append("-----------------------");
+      record.append(makeTerminalRecord(consoleBuffer, consoleErrBuffer));
       getLog().error(record.toString());
       return false;
     }
@@ -360,7 +508,7 @@ public class JuteMojo extends AbstractMojo {
     final InputStream in = new FileInputStream(pathToClass);
     try {
       final ClassReader classReader = new ClassReader(in);
-      classReader.accept(new ClassVisitorImpl(this.getLog(), this.verbose, methodList, this.includeTests, this.excludeTests), ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+      classReader.accept(new ClassVisitorImpl(this.getLog(), this.verbose, methodList, normalizeStringArray(this.includeTests), normalizeStringArray(this.excludeTests)), ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
     }
     finally {
       IOUtils.closeQuietly(in);
@@ -401,7 +549,7 @@ public class JuteMojo extends AbstractMojo {
 
       boolean canBeProcessed = true;
 
-      if (this.includedTests != null) {
+      if (this.includedTests.length != 0) {
         canBeProcessed = false;
         for (final String wildcard : this.includedTests) {
           if (FilenameUtils.wildcardMatch(name, wildcard)) {
@@ -415,7 +563,7 @@ public class JuteMojo extends AbstractMojo {
         }
       }
 
-      if (canBeProcessed && this.excludedTests != null) {
+      if (canBeProcessed && this.excludedTests.length != 0) {
         for (final String wildcard : this.excludedTests) {
           if (FilenameUtils.wildcardMatch(name, wildcard)) {
             canBeProcessed = false;
