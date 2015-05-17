@@ -1,5 +1,5 @@
 # What is it?
-It is a small specific Maven plugin (of course it is relative small one because it of course will downloaded half-of-internet as dependencies) for specific testing tasks.
+It is a small specific Maven plugin (of course it is relative small one because it of course will download and save on your machine a half-of-internet as dependencies) for specific testing tasks.
 
 # What is the specific tasks?
 Let's imagine that we want to write JUnit tests for some code which has so bizzare structure and architecture that it is very expensive to dig it and avoid influence of one test to another, may be it is a legacy code or just a system with very very complex behaviour. All your tests work separately but they are red in bunch execution.   
