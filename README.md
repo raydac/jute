@@ -96,3 +96,6 @@ In the case start your maven process with -X (it will turn on debug logging) and
 
 # It prints console output only if there is an error! and I want see test output everytime!
 No problems! Just add flag to enforce pring console output of external processes into maven log ```<enforcePrintConsole>true</enforcePrintConsole>``` and you will see external process console output every time.
+
+# I want to start only jute goal! How to do that?!
+Just execute ```mvn test:jute``` and only jute goal will be executeed by maven for your project.  
