@@ -57,71 +57,118 @@ public class JuteMojo extends AbstractMojo {
 
   /**
    * List of test method names to be included into testing. Wildcard pattern can
-   * be used.
+   * be used. By default all non-ignored test methods are included.
+   * <pre>
+   * &lt;includeTests&gt;
+   *   &lt;includeTest&gt;&#42Integration??Test&lt;/includeTest&gt;
+   *   &lt;includeTest&gt;SomeMethodTest&lt;/includeTest&gt;
+   * &lt;/includeTests&gt;
+   * </pre>
    */
   @Parameter(name = "includeTests")
   private String[] includeTests;
 
   /**
    * List of test method names to be excluded from testing. Wildcard pattern can
-   * be used.
+   * be used. By default there is not any excluded test, if the test is non-ignored one.
+   * <pre>
+   * &lt;excludeTests&gt;
+   *   &lt;excludeTest&gt;&#42Integration??Test&lt;/excludeTest&gt;
+   *   &lt;excludeTest&gt;SomeMethodTest&lt;/excludeTest&gt;
+   * &lt;/excludeTests&gt;
+   * </pre>
    */
   @Parameter(name = "excludeTests")
   private String[] excludeTests;
 
   /**
    * List of java test files to be included into testing. Ant path pattern can
-   * be used.
+   * be used. By default all classes are included.
+   * <pre>
+   * &lt;includes&gt;
+   *   &lt;include&gt;/&#42;&#42;/Test&#42;.java&lt;/include&gt;
+   *   &lt;include&gt;/TestIT&#42;.java&lt;/include&gt;
+   * &lt;/includes&gt;
+   * </pre>
    */
   @Parameter(name = "includes")
   private String[] includes;
 
   /**
    * List of java test files to be excluded from testing. Ant path pattern can
-   * be uses.
+   * be used. By default there is not excluded any test.
+   * <pre>
+   * &lt;excludes&gt;
+   *   &lt;exclude&gt;/&#42;&#42;/Test&#42;.java&lt;/exclude&gt;
+   *   &lt;exclude&gt;/TestIT&#42;.java&lt;/exclude&gt;
+   * &lt;/excludes&gt;
+   * </pre>
    */
   @Parameter(name = "excludes")
   private String[] excludes;
 
   /**
    * Path to JRE folder to be used for tests, also path to executable file can
-   * be provided. By default the Maven JRE will be used.
+   * be provided. By default the Maven JRE will be used. Value must contain path
+   * to JRE folder or to Java executable file, don't provide path to commands.
    */
   @Parameter(name = "java")
   private String java;
 
   /**
-   * Show extra information during processing.
+   * Show extra information about process.
    */
   @Parameter(name = "verbose", defaultValue = "false")
   private boolean verbose;
 
   /**
-   * Timeout for testing process in milliseconds.
+   * Timeout for testing process in milliseconds. If zero or less then execution
+   * without timeout.
    */
   @Parameter(name = "timeout", defaultValue = "0")
   private long timeout;
 
   /**
-   * Map of environment variables to be provided to staring processes.
+   * Map of environment variables to be provided to staring processes. They will
+   * be accessible through {@link java.lang.System#getenv(java.lang.String) }
+   * <pre>
+   * &lt;property&gt;
+   *   &lt;name&gt;someKey&lt;/name&gt;
+   *   &lt;value&gt;someValue&lt;/value&gt;
+   * &lt;/property&gt;
+   * </pre>
    */
   @Parameter(name = "env")
   private Properties env;
 
   /**
-   * Map of Java system properties which will be provided to started process.
+   * Map of Java system properties which will be provided to started process. They will be accessible through {@link java.lang.System#getProperty(java.lang.String)}
+   * <pre>
+   * &lt;property&gt;
+   *   &lt;name&gt;someKey&lt;/name&gt;
+   *   &lt;value&gt;someValue&lt;/value&gt;
+   * &lt;/property&gt;
+   * </pre>
    */
   @Parameter(name = "javaProperties")
   private Properties javaProperties;
 
   /**
-   * Enforce output of test process terminal streams.
+   * Enforce output of test process terminal streams. By default console text of
+   * process is printed only if there is an error, the parameter makes plugin
+   * print console data every time.
    */
   @Parameter(name = "enforcePrintConsole")
   private boolean enforcePrintConsole;
 
   /**
    * Provides extra options for JVM.
+   * <pre>
+   * &lt;jvmOptions&gt;
+   *   &lt;jvmOption&gt;-Xss256k&lt;/jvmOption&gt;
+   *   &lt;jvmOption&gt;-Xmx100m&lt;/jvmOption&gt;
+   * &lt;/jvmOptions&gt;
+   * </pre>
    */
   @Parameter(name = "jvmOptions")
   private String[] jvmOptions;
@@ -281,15 +328,15 @@ public class JuteMojo extends AbstractMojo {
     return result;
   }
 
-  private File findInterpreter() {
+  private static File preparePathToJavaInterpreter(final String javaPath) {
     final String name = SystemUtils.IS_OS_WINDOWS ? "\\bin\\java.exe" : "/bin/java";
 
     File result;
-    if (this.java == null) {
+    if (javaPath == null) {
       result = new File(new File(System.getProperty("java.home")), name);
     }
     else {
-      result = new File(this.java);
+      result = new File(javaPath);
       if (result.isDirectory()) {
         result = new File(result, name);
       }
@@ -339,7 +386,7 @@ public class JuteMojo extends AbstractMojo {
       throw new MojoExecutionException("Can't get path to the Mojo jar", ex);
     }
 
-    final File javaInterpreter = findInterpreter();
+    final File javaInterpreter = preparePathToJavaInterpreter(this.java);
     if (javaInterpreter == null) {
       throw new MojoExecutionException("Can't find java interpreter, check the 'java' parameter");
     }
