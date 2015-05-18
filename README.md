@@ -28,7 +28,7 @@ It is very easy, the plugin has been published in the Maven Central and you can 
   </plugins>
 </build>
 ```
-after that JUte will be executing every test phase of your project.
+after that JUte will be executing every test phase of your project during __test__ phase.
 
 # Hey! I want to use it only for several classes!
 No problems, just define name of your class in __includes__ section of the plugin configuration
