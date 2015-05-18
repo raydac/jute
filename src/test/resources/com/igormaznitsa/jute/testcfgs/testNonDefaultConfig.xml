@@ -6,8 +6,9 @@
       <plugin>
         <groupId>com.igormaznitsa</groupId>
         <artifactId>jute</artifactId>
-        <version>LATEST</version>
+        <version>1.0.1-SNAPSHOT</version>
         <configuration>
+          <in>Some test text</in>
           <verbose>true</verbose>
           <java>fake/jre/bin/java</java>
           <timeout>1000</timeout>

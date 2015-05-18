@@ -70,7 +70,8 @@ public class JuteMojo extends AbstractMojo {
 
   /**
    * List of test method names to be excluded from testing. Wildcard pattern can
-   * be used. By default there is not any excluded test, if the test is non-ignored one.
+   * be used. By default there is not any excluded test, if the test is
+   * non-ignored one.
    * <pre>
    * &lt;excludeTests&gt;
    *   &lt;excludeTest&gt;&#42Integration??Test&lt;/excludeTest&gt;
@@ -142,7 +143,9 @@ public class JuteMojo extends AbstractMojo {
   private Properties env;
 
   /**
-   * Map of Java system properties which will be provided to started process. They will be accessible through {@link java.lang.System#getProperty(java.lang.String)}
+   * Map of Java system properties which will be provided to started process.
+   * They will be accessible through
+   * {@link java.lang.System#getProperty(java.lang.String)}
    * <pre>
    * &lt;property&gt;
    *   &lt;name&gt;someKey&lt;/name&gt;
@@ -172,6 +175,17 @@ public class JuteMojo extends AbstractMojo {
    */
   @Parameter(name = "jvmOptions")
   private String[] jvmOptions;
+
+  /**
+   * Text to be sent to started processes through System.in as bytes decoded in
+   * default char-set.
+   */
+  @Parameter(name = "in")
+  private String in;
+
+  public String getIn() {
+    return this.in;
+  }
 
   public String[] getJvmOptions() {
     return this.jvmOptions == null ? null : this.jvmOptions.clone();
@@ -497,6 +511,10 @@ public class JuteMojo extends AbstractMojo {
       for (final Map.Entry<Object, Object> entry : this.env.entrySet()) {
         exec.environment((String) entry.getKey(), (String) entry.getValue());
       }
+    }
+
+    if (this.in != null) {
+      exec.redirectInput(new ByteArrayInputStream(this.in.getBytes(Charset.defaultCharset())));
     }
 
     final ByteArrayOutputStream consoleBuffer = new ByteArrayOutputStream();

@@ -6,7 +6,7 @@
       <plugin>
         <groupId>com.igormaznitsa</groupId>
         <artifactId>jute</artifactId>
-        <version>LATEST</version>
+        <version>1.0.1-SNAPSHOT</version>
         <configuration>
         </configuration>
       </plugin>

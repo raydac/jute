@@ -50,6 +50,7 @@ public class JuteMojoTest extends AbstractMojoTestCase {
     assertNull(myMojo.getIncludeTests());
     assertNull(myMojo.getIncludes());
     assertNull(myMojo.getJava());
+    assertNull(myMojo.getIn());
     assertFalse(myMojo.isEnforcePrintConsole());
   }
 
@@ -81,5 +82,6 @@ public class JuteMojoTest extends AbstractMojoTestCase {
     assertTrue(Arrays.deepEquals(new String[]{"included1","included2"}, myMojo.getIncludes()));
     assertEquals("fake/jre/bin/java",myMojo.getJava());
     assertTrue(myMojo.isEnforcePrintConsole());
+    assertEquals("Some test text",myMojo.getIn());
   }
 }
