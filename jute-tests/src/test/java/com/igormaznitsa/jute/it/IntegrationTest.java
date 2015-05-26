@@ -29,15 +29,15 @@ public class IntegrationTest extends AbstractJUteITTest{
     final List<String> juteSection = extractJuteSection(verifier);
     final List<String> junitSection = extractJUnitSection(verifier);
     
-    assertPattern(Pattern.compile("^Test_Method1$"), junitSection);
-    assertNoPattern(Pattern.compile("^Test_Method2$"), junitSection);
-    assertPattern(Pattern.compile("^Test_Method3$"), junitSection);
+    assertPattern("^Test_Method1$", junitSection);
+    assertNoPattern("^Test_Method2$", junitSection);
+    assertPattern("^Test_Method3$", junitSection);
     
-    assertPattern(Pattern.compile("\\[INFO\\]\\ssome\\.DefaultTest\\#test1\\.+OK"), juteSection);
-    assertNoPattern(Pattern.compile("\\[INFO\\]\\ssome\\.DefaultTest\\#test2\\.+OK"), juteSection);
-    assertPattern(Pattern.compile("\\[INFO\\]\\ssome\\.DefaultTest\\#test3\\.+OK"), juteSection);
-    assertNoPattern(Pattern.compile("^\\>\\>\\>Console.*$"), juteSection);
-    assertNoPattern(Pattern.compile("^\\>\\>\\>Error.*$"), juteSection);
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test1\\.+OK", juteSection);
+    assertNoPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test2\\.+OK", juteSection);
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test3\\.+OK", juteSection);
+    assertNoPattern("^\\>\\>\\>Console.*$", juteSection);
+    assertNoPattern("^\\>\\>\\>Error.*$", juteSection);
   }
 
   @Test
@@ -47,14 +47,76 @@ public class IntegrationTest extends AbstractJUteITTest{
     final List<String> juteSection = extractJuteSection(verifier);
     final List<String> junitSection = extractJUnitSection(verifier);
     
-    assertNoPattern(Pattern.compile("^Test_Method1$"), junitSection);
-    assertNoPattern(Pattern.compile("^Test_Method2$"), junitSection);
-    assertNoPattern(Pattern.compile("^Test_Method3$"), junitSection);
+    assertNoPattern("^Test_Method1$", junitSection);
+    assertNoPattern("^Test_Method2$", junitSection);
+    assertNoPattern("^Test_Method3$", junitSection);
     
-    assertPattern(Pattern.compile("\\[INFO\\]\\ssome\\.DefaultTest\\#test1\\.+OK"), juteSection);
-    assertNoPattern(Pattern.compile("\\[INFO\\]\\ssome\\.DefaultTest\\#test2\\.+OK"), juteSection);
-    assertPattern(Pattern.compile("\\[INFO\\]\\ssome\\.DefaultTest\\#test3\\.+OK"), juteSection);
-    assertNoPattern(Pattern.compile("^\\>\\>\\>Console.*$"), juteSection);
-    assertNoPattern(Pattern.compile("^\\>\\>\\>Error.*$"), juteSection);
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test1\\.+OK", juteSection);
+    assertNoPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test2\\.+OK", juteSection);
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test3\\.+OK", juteSection);
+    assertNoPattern("^\\>\\>\\>Console.*$", juteSection);
+    assertNoPattern("^\\>\\>\\>Error.*$", juteSection);
+  }
+
+  @Test
+  public void testExcludes() throws Exception {
+    final Verifier verifier = verify("excludedFileCfg", false);
+    
+    final List<String> juteSection = extractJuteSection(verifier);
+    final List<String> junitSection = extractJUnitSection(verifier);
+    
+    assertNoPattern("Method", junitSection);
+  
+    assertNoPattern("DefaultTest#Method", juteSection);
+    
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test1\\.+OK", juteSection);
+    assertNoPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test2\\.+OK", juteSection);
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test3\\.+OK", juteSection);
+    assertNoPattern("^\\>\\>\\>Console.*$", juteSection);
+    assertNoPattern("^\\>\\>\\>Error.*$", juteSection);
+  }
+
+  @Test
+  public void testIncludes() throws Exception {
+    final Verifier verifier = verify("includedFileCfg", false);
+    
+    final List<String> juteSection = extractJuteSection(verifier);
+    final List<String> junitSection = extractJUnitSection(verifier);
+    
+    assertNoPattern("Method", junitSection);
+  
+    assertNoPattern("DefaultTest#Method", juteSection);
+    
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test1\\.+OK", juteSection);
+    assertNoPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test2\\.+OK", juteSection);
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test3\\.+OK", juteSection);
+    assertNoPattern("^\\>\\>\\>Console.*$", juteSection);
+    assertNoPattern("^\\>\\>\\>Error.*$", juteSection);
+  }
+
+  @Test
+  public void testTerminalIn() throws Exception {
+    final Verifier verifier = verify("terminalIn", false);
+    
+    final List<String> juteSection = extractJuteSection(verifier);
+    final List<String> junitSection = extractJUnitSection(verifier);
+    
+    assertNoPattern("Method", junitSection);
+    
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test1\\.+OK", juteSection);
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test2\\.+OK", juteSection);
+  }
+
+  @Test
+  public void testJvmOptions() throws Exception {
+    final Verifier verifier = verify("jvmOptions", false);
+    
+    final List<String> juteSection = extractJuteSection(verifier);
+    final List<String> junitSection = extractJUnitSection(verifier);
+    
+    assertNoPattern("Method", junitSection);
+    
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test1\\.+OK", juteSection);
+    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test2\\.+OK", juteSection);
   }
 }

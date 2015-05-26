@@ -93,16 +93,18 @@ public abstract class AbstractJUteITTest {
     return result;
   }
   
-  protected static void assertPattern(final Pattern pattern, final List<String> list){
+  protected static void assertPattern(final String regex, final List<String> list){
+    final Pattern pattern = Pattern.compile(regex);
     for(final String s : list){
-      if (pattern.matcher(s).matches()) return;
+      if (pattern.matcher(s).find()) return;
     }
     fail("Pattern "+pattern.pattern()+" not found");
   }
 
-  protected static void assertNoPattern(final Pattern pattern, final List<String> list){
+  protected static void assertNoPattern(final String regex, final List<String> list){
+    final Pattern pattern = Pattern.compile(regex);
     for(final String s : list){
-      if (pattern.matcher(s).matches()) fail("Detected pattern "+pattern.pattern());
+      if (pattern.matcher(s).find()) fail("Detected pattern "+pattern.pattern());
     }
   }
 }
