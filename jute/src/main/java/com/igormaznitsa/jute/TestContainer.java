@@ -46,6 +46,8 @@ public final class TestContainer extends AnnotationVisitor {
   private final String methodName;
   private final Runnable endCall;
 
+  private String visitingArrayName = null;
+  
   public TestContainer(final String classFilePath, final String className, final String testName, final String jvm, final String[] jvmOpts, final String in, final int order, final boolean enforceOut, final boolean skip, final long timeout) {
     super(Opcodes.ASM5);
     this.classFilePath = classFilePath;
@@ -153,9 +155,17 @@ public final class TestContainer extends AnnotationVisitor {
   }
 
   @Override
+  public AnnotationVisitor visitArray(final String name) {
+    this.visitingArrayName = name;
+    return this;
+  }
+
+  @Override
   public void visit(final String name, final Object value) {
+    final String annoName = name == null ? this.visitingArrayName : name;
+
     for (final Field f : TestContainer.class.getDeclaredFields()) {
-      if (f.getName().equals(name)) {
+      if (f.getName().equals(annoName)) {
         try {
           if (f.getType().isAssignableFrom(List.class)) {
             ((List) f.get(this)).add(value);
