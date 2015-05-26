@@ -46,6 +46,7 @@ public final class JUteSingleTestMethodRunner {
       final Class theKlazz = Class.forName(classAndMethod[0]);
 
       final Method testMethod = theKlazz.getMethod(classAndMethod[1]);
+      final Object theKlazzInstance = theKlazz.newInstance();
 
       final List<Method> beforeClass = collectBeforeClassMethods(theKlazz);
       final List<Method> afterClass = collectAfterClassMethods(theKlazz);
@@ -58,7 +59,6 @@ public final class JUteSingleTestMethodRunner {
       }
       try {
         if (!error) {
-          final Object theKlazzInstance = theKlazz.newInstance();
           try {
             if (executeMethodList(theKlazzInstance, beforeTest, true)) {
               testMethod.invoke(theKlazzInstance);

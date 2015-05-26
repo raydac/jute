@@ -1,0 +1,6 @@
+1.1.0
+- added @JUte annotation
+- added support of tests non marked by @Test annotation
+
+1.0.0
+- initial version
