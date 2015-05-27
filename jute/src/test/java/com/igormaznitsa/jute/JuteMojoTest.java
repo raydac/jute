@@ -52,6 +52,8 @@ public class JuteMojoTest extends AbstractMojoTestCase {
     assertNull(myMojo.getIncludes());
     assertNull(myMojo.getJava());
     assertNull(myMojo.getIn());
+    assertFalse(myMojo.isSkip());
+    assertFalse(myMojo.isSkipTests());
     assertFalse(myMojo.isEnforcePrintConsole());
   }
 

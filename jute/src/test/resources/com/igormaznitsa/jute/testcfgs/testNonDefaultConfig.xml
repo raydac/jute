@@ -40,6 +40,8 @@
               <value>value2</value>
             </property>
           </env>
+          <skipTests>true</skipTests>
+          <skip>true</skip>
           <jvmOptions>
             <jvmOption>-Xss100k</jvmOption>
             <jvmOption>-Xmx100m</jvmOption>

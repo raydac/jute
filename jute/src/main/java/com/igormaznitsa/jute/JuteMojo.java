@@ -45,8 +45,8 @@ import org.springframework.util.AntPathMatcher;
 @Mojo(name = "jute", defaultPhase = LifecyclePhase.TEST, threadSafe = true, requiresDependencyResolution = ResolutionScope.TEST)
 public class JuteMojo extends AbstractMojo {
 
-  private static final String [] EMPTY_STR = new String[0];
-  
+  private static final String[] EMPTY_STR = new String[0];
+
   static final String ANNO_TEST = "Lorg/junit/Test;";
   static final String ANNO_IGNORE = "Lorg/junit/Ignore;";
   static final String ANNO_JUTE = "Lcom/igormaznitsa/jute/annotations/JUteTest;";
@@ -169,12 +169,24 @@ public class JuteMojo extends AbstractMojo {
   private boolean enforcePrintConsole;
 
   /**
-   * Start only tests marked by @com.igormaznitsa,jute.annotations.JUTeTest annotation
-   * and ignore JUnit tests.
+   * Start only tests marked by @com.igormaznitsa,jute.annotations.JUTeTest
+   * annotation and ignore JUnit tests.
    */
-  @Parameter(name = "onlyAnnotated",defaultValue = "false")
+  @Parameter(name = "onlyAnnotated", defaultValue = "false")
   private boolean onlyAnnotated;
-  
+
+  /**
+   * Parameter allows to skip tests.
+   */
+  @Parameter(name = "skipTests", property = "skipTests", defaultValue = "false")
+  private boolean skipTests;
+
+  /**
+   * Global parameter to skip all tests entirely.
+   */
+  @Parameter(name = "skip", property = "maven.test.skip", defaultValue = "false")
+  private boolean skip;
+
   /**
    * Provides extra options for JVM.
    * <pre>
@@ -198,10 +210,18 @@ public class JuteMojo extends AbstractMojo {
     return this.in;
   }
 
-  public boolean isOnlyAnnotated(){
+  public boolean isSkip() {
+    return this.skip;
+  }
+
+  public boolean isSkipTests() {
+    return this.skipTests;
+  }
+
+  public boolean isOnlyAnnotated() {
     return this.onlyAnnotated;
   }
-  
+
   public String[] getJvmOptions() {
     return this.jvmOptions == null ? null : this.jvmOptions.clone();
   }
@@ -341,9 +361,10 @@ public class JuteMojo extends AbstractMojo {
 
   private static String[] normalizeStringArray(final String[] array) {
     String[] result = null;
-    if (array == null){
+    if (array == null) {
       result = EMPTY_STR;
-    } else {
+    }
+    else {
       result = new String[array.length];
       for (int i = 0; i < array.length; i++) {
         final String s = array[i];
@@ -399,6 +420,11 @@ public class JuteMojo extends AbstractMojo {
 
   @Override
   public void execute() throws MojoExecutionException {
+    if (isSkipExecution()) {
+      getLog().info("Tests are skipped.");
+      return;
+    }
+
     final File testFolder = new File(this.project.getBuild().getTestOutputDirectory());
     if (!testFolder.isDirectory()) {
       getLog().info("No test folder");
@@ -430,18 +456,16 @@ public class JuteMojo extends AbstractMojo {
 
     final long startTime = System.currentTimeMillis();
 
-    if (this.verbose) {
-      getLog().info("Global Java options: " + (this.jvmOptions == null ? "<not provided>" : Arrays.toString(this.jvmOptions)));
-      if (javaInterpreter == null) {
-        getLog().info("Java interpreter command: " + this.java);
-      }
-      else {
-        getLog().info("Java interpreter path: " + javaInterpreter.getAbsolutePath());
-      }
-      getLog().info("Test class path: " + testClassPath);
-      getLog().info("Detected " + extractedTestMethods.size() + " test method(s)");
-      getLog().info(this.timeout < 0L ? "No Timeout" : "Timeout is " + this.timeout + " ms");
+    getLog().info("Global Java options: " + (this.jvmOptions == null ? "<not provided>" : Arrays.toString(this.jvmOptions)));
+    if (javaInterpreter == null) {
+      getLog().info("JVM interpreter command: " + this.java);
     }
+    else {
+      getLog().info("Global JVM interpreter path: " + javaInterpreter.getAbsolutePath());
+    }
+    getLog().info("Test class path: " + testClassPath);
+    getLog().info("Detected " + extractedTestMethods.size() + " potential test method(s)");
+    getLog().info(this.timeout < 0L ? "No Timeout" : "Timeout is " + this.timeout + " ms");
 
     int startedCounter = 0;
     int errorCounter = 0;
@@ -460,8 +484,8 @@ public class JuteMojo extends AbstractMojo {
           errorCounter++;
         }
       }
-      catch(IgnoredTestException ex){
-        
+      catch (IgnoredTestException ex) {
+
       }
       catch (Throwable ex) {
         throw new MojoExecutionException("Error during test method execution '" + test + '\'', ex);
@@ -482,6 +506,10 @@ public class JuteMojo extends AbstractMojo {
     if (errorCounter != 0) {
       throw new MojoExecutionException("Detected failed tests, see session log");
     }
+  }
+
+  private boolean isSkipExecution() {
+    return this.isSkip() || this.isSkipTests();
   }
 
   private void fillListByTestMethods(final TestContainer base, final List<String> testClassFilePaths, final List<TestContainer> listOfDetectedMethods) throws IOException {
