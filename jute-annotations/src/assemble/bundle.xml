@@ -23,6 +23,7 @@
             <excludes>
               <exclude>original*.*</exclude>
               <exclude>*.zip</exclude>
+              <exclude>.netbeans_automatic_build</exclude>
             </excludes>
         </fileSet>
     </fileSets>
