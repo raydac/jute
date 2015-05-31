@@ -98,13 +98,30 @@ public abstract class AbstractJUteITTest {
     for(final String s : list){
       if (pattern.matcher(s).find()) return;
     }
-    fail("Pattern "+pattern.pattern()+" not found");
+    for (final String line : list) {
+      System.err.println(line);
+    }
+    System.err.flush();
+    fail("Not found pattern: " + pattern.pattern());
   }
 
   protected static void assertNoPattern(final String regex, final List<String> list){
     final Pattern pattern = Pattern.compile(regex);
     for(final String s : list){
-      if (pattern.matcher(s).find()) fail("Detected pattern "+pattern.pattern());
+      if (pattern.matcher(s).find()) {
+        for (final String line : list) {
+          System.err.println(line);
+        }
+        fail("Detected pattern : "+pattern.pattern());
+      }
     }
+  }
+  
+  private static String glue(final List<String> str){
+    final StringBuilder result = new StringBuilder();
+    for(final String s : str){
+      result.append(s).append(System.lineSeparator());
+    }
+    return result.toString();
   }
 }

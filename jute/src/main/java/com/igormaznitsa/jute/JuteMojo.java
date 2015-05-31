@@ -446,7 +446,7 @@ public class JuteMojo extends AbstractMojo {
     final TestContainer baseTestConfig = new TestContainer(null, null, null, javaInterpreter == null ? this.java : javaInterpreter.getAbsolutePath(), this.jvmOptions, this.in, -1, this.enforcePrintConsole, false, this.timeout);
 
     final List<String> collectedTestFilePaths = collectAllPotentialTestClassPaths(getLog(), this.verbose, testFolder, normalizeStringArray(this.includes), normalizeStringArray(this.excludes));
-    final List<TestContainer> extractedTestMethods = new ArrayList<TestContainer>();
+    final Map<TestClassProcessor, List<TestContainer>> extractedTestMethods = new HashMap<TestClassProcessor, List<TestContainer>>();
     try {
       fillListByTestMethods(baseTestConfig, collectedTestFilePaths, extractedTestMethods);
     }
@@ -464,32 +464,79 @@ public class JuteMojo extends AbstractMojo {
       getLog().info("Global JVM interpreter path: " + javaInterpreter.getAbsolutePath());
     }
     getLog().info("Test class path: " + testClassPath);
-    getLog().info("Detected " + extractedTestMethods.size() + " potential test method(s)");
-    getLog().info(this.timeout < 0L ? "No Timeout" : "Timeout is " + this.timeout + " ms");
+    getLog().info(this.timeout <= 0L ? "No Timeout" : "Timeout is " + this.timeout + " ms");
+    getLog().info("Detected " + Utils.calcNumberOfItems(extractedTestMethods) + " potential test method(s)");
+    getLog().info("");
 
     int startedCounter = 0;
     int errorCounter = 0;
 
     int maxTestNameLength = 0;
-    for (final TestContainer test : extractedTestMethods) {
-      if (maxTestNameLength < test.toString().length()) {
-        maxTestNameLength = test.toString().length();
+    for (final Map.Entry<TestClassProcessor, List<TestContainer>> e : extractedTestMethods.entrySet()) {
+      for (final TestContainer test : e.getValue()) {
+        if (maxTestNameLength < test.getMethodName().length()) {
+          maxTestNameLength = test.getMethodName().length();
+        }
       }
     }
 
-    for (final TestContainer test : extractedTestMethods) {
-      try {
-        startedCounter++;
-        if (!test.executeTest(getLog(), this.onlyAnnotated, maxTestNameLength, testClassPath, this.javaProperties, this.env)) {
-          errorCounter++;
+    for (final Map.Entry<TestClassProcessor, List<TestContainer>> e : extractedTestMethods.entrySet()) {
+      getLog().info(e.getKey().getClassName());
+      getLog().info(" ┬");
+
+      final StringBuilder terminal = new StringBuilder();
+
+      for (int i = 0; i < e.getValue().size(); i++) {
+        terminal.setLength(0);
+
+        final TestContainer tc = e.getValue().get(i);
+        try {
+          startedCounter++;
+
+          final String prefix;
+          if (e.getValue().size() == 1 || i == e.getValue().size() - 1) {
+            prefix = " └";
+          }
+          else {
+            prefix = " ├";
+          }
+
+          final boolean success = tc.executeTest(getLog(), prefix, terminal, this.onlyAnnotated, maxTestNameLength, testClassPath, this.javaProperties, this.env);
+
+          if (!success) {
+            errorCounter++;
+          }
+
+          if (terminal.length() > 0) {
+            final List<String> splitted = Utils.splitToLines(terminal.toString());
+            final int maxlineWidth = Utils.getMaxLineWidth(splitted);
+            final StringBuilder ramka = new StringBuilder();
+            for(int s=0;s<maxlineWidth;s++){
+              ramka.append('═');
+            }
+            final String ramkaStr = ramka.toString();
+            getLog().info('╔'+ramkaStr+'╗');
+
+            for (final String s : splitted) {
+              if (success) {
+                getLog().info(s);
+              }
+              else {
+                getLog().error(s);
+              }
+            }
+            getLog().info('╚'+ramkaStr+'╝');
+          }
+
+        }
+        catch (IgnoredTestException ex) {
+
+        }
+        catch (Throwable ex) {
+          throw new MojoExecutionException("Error during test method execution '" + tc + '\'', ex);
         }
       }
-      catch (IgnoredTestException ex) {
-
-      }
-      catch (Throwable ex) {
-        throw new MojoExecutionException("Error during test method execution '" + test + '\'', ex);
-      }
+      getLog().info("");
     }
 
     final Duration duration = new Duration(startTime, System.currentTimeMillis());
@@ -512,12 +559,17 @@ public class JuteMojo extends AbstractMojo {
     return this.isSkip() || this.isSkipTests();
   }
 
-  private void fillListByTestMethods(final TestContainer base, final List<String> testClassFilePaths, final List<TestContainer> listOfDetectedMethods) throws IOException {
+  private void fillListByTestMethods(final TestContainer base, final List<String> testClassFilePaths, final Map<TestClassProcessor, List<TestContainer>> detectedTestMap) throws IOException {
     for (final String s : testClassFilePaths) {
       final InputStream classInStream = new FileInputStream(s);
       try {
         final ClassReader classReader = new ClassReader(classInStream);
-        classReader.accept(new TestClassVisitor(s, base, this.getLog(), this.verbose, listOfDetectedMethods, normalizeStringArray(this.includeTests), normalizeStringArray(this.excludeTests)), ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+        final List<TestContainer> listOfDetectedMethods = new ArrayList<TestContainer>();
+
+        final TestClassProcessor tcv = new TestClassProcessor(s, base, this.getLog(), this.verbose, listOfDetectedMethods, normalizeStringArray(this.includeTests), normalizeStringArray(this.excludeTests));
+        classReader.accept(tcv, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+
+        detectedTestMap.put(tcv, listOfDetectedMethods);
       }
       finally {
         IOUtils.closeQuietly(classInStream);

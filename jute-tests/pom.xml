@@ -1,47 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>com.igormaznitsa</groupId>
-        <artifactId>jute-pom</artifactId>
-        <version>1.1.0-SNAPSHOT</version>
-    </parent>
-    <artifactId>jute-tests</artifactId>
-    <packaging>jar</packaging>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.igormaznitsa</groupId>
+    <artifactId>jute-pom</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>jute-tests</artifactId>
+  <packaging>jar</packaging>
     
-    <name>JUte integration tests</name>
-    <description>Integration tests for JUte</description>
+  <name>JUte integration tests</name>
+  <description>Integration tests for JUte</description>
     
-    <dependencies>
-      <dependency>
-        <groupId>org.apache.maven.shared</groupId>
-        <artifactId>maven-verifier</artifactId>
-        <version>1.5</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.12</version>
-        <scope>test</scope>
-      </dependency>
-    </dependencies>
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.maven.shared</groupId>
+      <artifactId>maven-verifier</artifactId>
+      <version>1.5</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
-    <build>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.18.1</version>
-          <configuration>
-            <systemProperties>
-              <property>
-                <name>maven.project.version</name>
-                <value>${project.version}</value>
-              </property>
-            </systemProperties>
-          </configuration>
-        </plugin>
-      </plugins>
-    </build>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.18.1</version>
+        <configuration>
+          <useFile>false</useFile>
+          <trimStackTrace>false</trimStackTrace>
+          <systemProperties>
+            <property>
+              <name>maven.project.version</name>
+              <value>${project.version}</value>
+            </property>
+          </systemProperties>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

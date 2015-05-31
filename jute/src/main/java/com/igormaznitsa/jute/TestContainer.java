@@ -102,7 +102,7 @@ public final class TestContainer extends AnnotationVisitor {
     return this.jvmOpts.toArray(new String[this.jvmOpts.size()]);
   }
 
-  public String getMethodTestName() {
+  public String getMethodName() {
     return this.methodName;
   }
 
@@ -188,7 +188,7 @@ public final class TestContainer extends AnnotationVisitor {
     }
   }
 
-  public boolean executeTest(final Log log, final boolean startOnlyJUteMarkedTests, final int maxTestNameLength, final String classPath, final Properties javaProperties, final Properties env) throws IOException, InterruptedException, IgnoredTestException {
+  public boolean executeTest(final Log log, final String prefix, final StringBuilder terminal, final boolean startOnlyJUteMarkedTests, final int maxTestNameLength, final String classPath, final Properties javaProperties, final Properties env) throws IOException, InterruptedException, IgnoredTestException {
     final boolean skipped;
     if (startOnlyJUteMarkedTests){
       if (!this.isJUteTest()){
@@ -200,10 +200,6 @@ public final class TestContainer extends AnnotationVisitor {
       skipped = (this.junitTest && this.junitIgnore) || (this.juteTest && this.skip);
     }
     
-    if (skipped) {
-      throw new IgnoredTestException(this);
-    }
-
     final List<String> arguments = new ArrayList<String>();
     arguments.add(this.jvm);
 
@@ -262,9 +258,16 @@ public final class TestContainer extends AnnotationVisitor {
     final ByteArrayOutputStream consoleBuffer = new ByteArrayOutputStream();
     final ByteArrayOutputStream consoleErrBuffer = new ByteArrayOutputStream();
 
-    final StringBuilder record = new StringBuilder(this.toString());
+    final StringBuilder record = new StringBuilder(128);
+    record.append(prefix).append(this.methodName);
     for (int i = record.length(); i < maxTestNameLength + 10; i++) {
       record.append('.');
+    }
+
+    if (skipped) {
+      record.append("SKIPPED");
+      log.info(record.toString());
+      throw new IgnoredTestException(this);
     }
 
     final ProcessExecutor executor = exec.destroyOnExit().redirectError(consoleErrBuffer).redirectOutput(consoleBuffer);
@@ -289,7 +292,7 @@ public final class TestContainer extends AnnotationVisitor {
         record.append("OK");
       }
       if (this.enforceOut) {
-        record.append(makeTerminalRecord(consoleBuffer, consoleErrBuffer));
+        terminal.append(makeTerminalRecord(consoleBuffer, consoleErrBuffer));
       }
       log.info(record.toString());
       return true;
@@ -298,24 +301,22 @@ public final class TestContainer extends AnnotationVisitor {
       if (!statusPrinted) {
         record.append("ERROR");
       }
-      record.append(makeTerminalRecord(consoleBuffer, consoleErrBuffer));
-      log.error(record.toString());
+      log.info(record.toString());
+      terminal.append(makeTerminalRecord(consoleBuffer, consoleErrBuffer));
       return false;
     }
   }
 
   private static String collectConsoleData(final ByteArrayOutputStream out, final ByteArrayOutputStream err) {
     final StringBuilder record = new StringBuilder();
-    record.append(">>>Console").append(System.lineSeparator()).append(new String(out.toByteArray(), Charset.defaultCharset())).append(System.lineSeparator());
-    record.append(">>>Errors").append(System.lineSeparator()).append(new String(err.toByteArray(), Charset.defaultCharset()));
+    record.append(">>>Console").append(Utils.lineSeparator).append(new String(out.toByteArray(), Charset.defaultCharset())).append(Utils.lineSeparator);
+    record.append(">>>Errors").append(Utils.lineSeparator).append(new String(err.toByteArray(), Charset.defaultCharset()));
     return record.toString();
   }
 
   private static String makeTerminalRecord(final ByteArrayOutputStream out, final ByteArrayOutputStream err) {
     final StringBuilder record = new StringBuilder();
-    record.append(System.lineSeparator()).append("-----------------------").append(System.lineSeparator());
     record.append(collectConsoleData(out, err));
-    record.append(System.lineSeparator()).append("-----------------------");
     return record.toString();
   }
 

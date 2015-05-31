@@ -16,9 +16,7 @@
 package com.igormaznitsa.jute.it;
 
 import java.util.List;
-import java.util.regex.Pattern;
 import org.apache.maven.it.Verifier;
-import static org.junit.Assert.*;
 import org.junit.Test;
 
 public class IntegrationTest extends AbstractJUteITTest{
@@ -33,11 +31,10 @@ public class IntegrationTest extends AbstractJUteITTest{
     assertNoPattern("^Test_Method2$", junitSection);
     assertPattern("^Test_Method3$", junitSection);
     
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test1\\.+OK", juteSection);
-    assertNoPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test2\\.+OK", juteSection);
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test3\\.+OK", juteSection);
-    assertNoPattern("^\\>\\>\\>Console.*$", juteSection);
-    assertNoPattern("^\\>\\>\\>Error.*$", juteSection);
+    assertPattern("test1\\.+OK", juteSection);
+    assertNoPattern("test2\\.+OK", juteSection);
+    assertPattern("test3\\.+OK", juteSection);
+    assertNoPattern("\\[ERROR\\]", juteSection);
   }
 
   @Test
@@ -51,11 +48,10 @@ public class IntegrationTest extends AbstractJUteITTest{
     assertNoPattern("^Test_Method2$", junitSection);
     assertNoPattern("^Test_Method3$", junitSection);
     
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test1\\.+OK", juteSection);
-    assertNoPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test2\\.+OK", juteSection);
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test3\\.+OK", juteSection);
-    assertNoPattern("^\\>\\>\\>Console.*$", juteSection);
-    assertNoPattern("^\\>\\>\\>Error.*$", juteSection);
+    assertPattern("test1\\.+OK", juteSection);
+    assertPattern("test2\\.+SKIPPED", juteSection);
+    assertPattern("test3\\.+OK", juteSection);
+    assertNoPattern("\\[ERROR\\]", juteSection);
   }
 
   @Test
@@ -67,13 +63,12 @@ public class IntegrationTest extends AbstractJUteITTest{
     
     assertNoPattern("Method", junitSection);
   
-    assertNoPattern("DefaultTest#Method", juteSection);
+    assertNoPattern("DefaultTest(?!2)", juteSection);
     
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test1\\.+OK", juteSection);
-    assertNoPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test2\\.+OK", juteSection);
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test3\\.+OK", juteSection);
-    assertNoPattern("^\\>\\>\\>Console.*$", juteSection);
-    assertNoPattern("^\\>\\>\\>Error.*$", juteSection);
+    assertPattern("test1\\.+OK", juteSection);
+    assertPattern("test2\\.+SKIPPED", juteSection);
+    assertPattern("test3\\.+OK", juteSection);
+    assertNoPattern("\\[ERROR\\]", juteSection);
   }
 
   @Test
@@ -85,13 +80,12 @@ public class IntegrationTest extends AbstractJUteITTest{
     
     assertNoPattern("Method", junitSection);
   
-    assertNoPattern("DefaultTest#Method", juteSection);
+    assertNoPattern("DefaultTest(?!2)", juteSection);
     
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test1\\.+OK", juteSection);
-    assertNoPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test2\\.+OK", juteSection);
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest2\\#test3\\.+OK", juteSection);
-    assertNoPattern("^\\>\\>\\>Console.*$", juteSection);
-    assertNoPattern("^\\>\\>\\>Error.*$", juteSection);
+    assertPattern("test1\\.+OK", juteSection);
+    assertNoPattern("test2\\.+OK", juteSection);
+    assertPattern("test3\\.+OK", juteSection);
+    assertNoPattern("\\[ERROR\\]", juteSection);
   }
 
   @Test
@@ -103,8 +97,9 @@ public class IntegrationTest extends AbstractJUteITTest{
     
     assertNoPattern("Method", junitSection);
     
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test1\\.+OK", juteSection);
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test2\\.+OK", juteSection);
+    assertNoPattern("\\[ERROR\\]", juteSection);
+    assertPattern("test1\\.+OK", juteSection);
+    assertPattern("test2\\.+OK", juteSection);
   }
 
   @Test
@@ -116,7 +111,8 @@ public class IntegrationTest extends AbstractJUteITTest{
     
     assertNoPattern("Method", junitSection);
     
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test1\\.+OK", juteSection);
-    assertPattern("\\[INFO\\]\\ssome\\.DefaultTest\\#test2\\.+OK", juteSection);
+    assertNoPattern("\\[ERROR\\]", juteSection);
+    assertPattern("test1\\.+OK", juteSection);
+    assertPattern("test2\\.+OK", juteSection);
   }
 }

@@ -20,7 +20,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.maven.plugin.logging.Log;
 import org.objectweb.asm.*;
 
-final class TestClassVisitor extends ClassVisitor {
+final class TestClassProcessor extends ClassVisitor {
 
   private final List<TestContainer> methodList;
   private final String[] includedTests;
@@ -34,7 +34,7 @@ final class TestClassVisitor extends ClassVisitor {
   private TestContainer clazzParameters;
   private boolean inappropriateClass;
 
-  TestClassVisitor(final String classFilePath, final TestContainer baseParameters, final Log logger, final boolean verbose, final List<TestContainer> resultList, final String[] includedTestPatterns, final String[] excludedTestPatterns) {
+  TestClassProcessor(final String classFilePath, final TestContainer baseParameters, final Log logger, final boolean verbose, final List<TestContainer> resultList, final String[] includedTestPatterns, final String[] excludedTestPatterns) {
     super(Opcodes.ASM5);
     this.methodList = resultList;
     this.includedTests = includedTestPatterns;
@@ -173,4 +173,26 @@ final class TestClassVisitor extends ClassVisitor {
     return result;
   }
 
+  public String getClassName(){
+    return this.className;
+  }
+  
+  public TestContainer getClassJUteParameters(){
+    return this.clazzParameters;
+  }
+  
+  @Override
+  public int hashCode(){
+    return this.className.hashCode();
+  }
+  
+  @Override
+  public boolean equals(final Object obj){
+    if (obj == null) return false;
+    if (obj == this) return true;
+    if (obj instanceof TestClassProcessor){
+       return this.className.equals(((TestClassProcessor)obj).className);
+    }
+    return false;
+  }
 }

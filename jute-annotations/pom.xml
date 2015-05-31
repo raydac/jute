@@ -91,13 +91,12 @@
       <plugin>
         <groupId>com.igormaznitsa</groupId>
         <artifactId>uber-pom</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0</version>
         <configuration>
           <remove>
             <section>parent</section>
             <section>modules</section>
           </remove>
-          <enforce>true</enforce>
         </configuration>
         <executions>
           <execution>
