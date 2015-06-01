@@ -26,7 +26,7 @@ import org.apache.maven.it.util.ResourceExtractor;
 
 public abstract class AbstractJUteITTest {
 
-  protected static final String PROJECT_VERSION = System.getProperty("maven.project.version", "unknown");
+  protected static final String PROJECT_VERSION = System.getProperty("maven.jute.version", "unknown");
 
   protected File getTestFolder(final String name) throws IOException {
     final File result = ResourceExtractor.simpleExtractResources(this.getClass(), name);
@@ -36,7 +36,7 @@ public abstract class AbstractJUteITTest {
 
   protected Verifier verify(final String testName, final boolean debug) throws Exception {
     final Verifier ver = new Verifier(getTestFolder(testName).getAbsolutePath(), debug);
-    ver.executeGoals(Arrays.asList("compile", "test"));
+    ver.executeGoals(Arrays.asList("compile", "test"),Collections.singletonMap("maven.jute.version", PROJECT_VERSION));
     return ver;
   }
 

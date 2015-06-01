@@ -4,12 +4,20 @@
 
   <groupId>com.igormaznitsa</groupId>
   <artifactId>jute-pom</artifactId>
-  <version>1.1.0-SNAPSHOT</version>
+  <version>${parent.version}</version>
   <packaging>pom</packaging>
 
   <prerequisites>
     <maven>3.0.1</maven>
   </prerequisites>
+
+  <properties>
+    <parent.version>1.1.0-SNAPSHOT</parent.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <timestamp>${maven.build.timestamp}</timestamp>
+    <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
+  </properties>
 
   <name>JUte-pom</name>
   <url>https://github.com/raydac/jute</url>
@@ -21,12 +29,6 @@
     <module>jute-tests</module>
   </modules>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <timestamp>${maven.build.timestamp}</timestamp>
-    <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
-  </properties>
 
   <issueManagement>
     <system>GitHub Issues</system>
@@ -61,6 +63,41 @@
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>com.igormaznitsa</groupId>
+        <artifactId>uber-pom</artifactId>
+        <version>1.0.0</version>
+        <configuration>
+          <remove>
+            <section>parent</section>
+            <section>modules</section>
+          </remove>
+          <set>
+            <property>
+              <name>version</name>
+              <value>${parent.version}</value>
+            </property>
+          </set>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>upom</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.18.1</version>
+        <configuration>
+          <systemPropertyVariables>
+            <propertyName>jute.version</propertyName>
+            <buildDirectory>${parent.version}</buildDirectory>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>

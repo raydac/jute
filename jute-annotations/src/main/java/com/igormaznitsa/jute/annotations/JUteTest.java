@@ -42,7 +42,7 @@ public @interface JUteTest {
   String in() default "";
   /**
    * Order of test. Tests with similar order parameters will be started in parallel.
-   * @return negative number if default order should be used
+   * @return negative number shows that test doesn't need any ordering, zero shows that tests with such order should be sorted in alphabetic order (case sensitive), otherwise shows that tests with the same order should be started in parallel.
    */
   int order() default -1;
   /**
