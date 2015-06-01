@@ -15,7 +15,6 @@
  */
 package com.igormaznitsa.jute;
 
-import com.igormaznitsa.jute.exceptions.IgnoredTestException;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
@@ -28,7 +27,13 @@ import org.objectweb.asm.Opcodes;
 import org.zeroturnaround.exec.ProcessExecutor;
 
 public final class TestContainer extends AnnotationVisitor {
-
+  public enum TestResult{
+    SKIPPED,
+    OK,
+    TIMEOUT,
+    ERROR;
+  }
+  
   // all fields to be filled by JUteTest annotation values must have the same names!
   private String jvm = "";
   private String in = "";
@@ -47,6 +52,8 @@ public final class TestContainer extends AnnotationVisitor {
   private final Runnable endCall;
 
   private String visitingArrayName = null;
+  
+  private volatile String lastTerminalOut;
   
   public TestContainer(final String classFilePath, final String className, final String testName, final String jvm, final String[] jvmOpts, final String in, final int order, final boolean enforceOut, final boolean skip, final long timeout) {
     super(Opcodes.ASM5);
@@ -188,16 +195,20 @@ public final class TestContainer extends AnnotationVisitor {
     }
   }
 
-  public boolean executeTest(final Log log, final String prefix, final StringBuilder terminal, final boolean startOnlyJUteMarkedTests, final int maxTestNameLength, final String classPath, final Properties javaProperties, final Properties env) throws IOException, InterruptedException, IgnoredTestException {
-    final boolean skipped;
+  public TestResult executeTest(final Log log, final boolean startOnlyJUteMarkedTests, final int maxTestNameLength, final String classPath, final Properties javaProperties, final Properties env) throws IOException, InterruptedException {
+    final boolean shouldBeSkipped;
     if (startOnlyJUteMarkedTests){
       if (!this.isJUteTest()){
-        skipped = true;
+        shouldBeSkipped = true;
       }else{
-        skipped = this.skip;
+        shouldBeSkipped = this.skip;
       }
     }else{
-      skipped = (this.junitTest && this.junitIgnore) || (this.juteTest && this.skip);
+      shouldBeSkipped = (this.junitTest && this.junitIgnore) || (this.juteTest && this.skip);
+    }
+
+    if (shouldBeSkipped) {
+      return TestResult.SKIPPED;
     }
     
     final List<String> arguments = new ArrayList<String>();
@@ -258,53 +269,24 @@ public final class TestContainer extends AnnotationVisitor {
     final ByteArrayOutputStream consoleBuffer = new ByteArrayOutputStream();
     final ByteArrayOutputStream consoleErrBuffer = new ByteArrayOutputStream();
 
-    final StringBuilder record = new StringBuilder(128);
-    record.append(prefix).append(this.methodName);
-    for (int i = record.length(); i < maxTestNameLength + 10; i++) {
-      record.append('.');
-    }
-
-    if (skipped) {
-      record.append("SKIPPED");
-      log.info(record.toString());
-      throw new IgnoredTestException(this);
-    }
-
     final ProcessExecutor executor = exec.destroyOnExit().redirectError(consoleErrBuffer).redirectOutput(consoleBuffer);
     int result;
-    boolean statusPrinted = false;
     if (this.timeout > 0L) {
       try {
         result = executor.timeout(this.timeout, TimeUnit.MILLISECONDS).execute().getExitValue();
       }
       catch (TimeoutException ex) {
-        result = 999;
-        record.append("TIMEOUT");
-        statusPrinted = true;
+        this.lastTerminalOut = prepareTerminalLog(consoleBuffer, consoleErrBuffer);
+        return TestResult.TIMEOUT;
       }
     }
     else {
       result = executor.executeNoTimeout().getExitValue();
     }
 
-    if (result == 0) {
-      if (!statusPrinted) {
-        record.append("OK");
-      }
-      if (this.enforceOut) {
-        terminal.append(makeTerminalRecord(consoleBuffer, consoleErrBuffer));
-      }
-      log.info(record.toString());
-      return true;
-    }
-    else {
-      if (!statusPrinted) {
-        record.append("ERROR");
-      }
-      log.info(record.toString());
-      terminal.append(makeTerminalRecord(consoleBuffer, consoleErrBuffer));
-      return false;
-    }
+    this.lastTerminalOut = prepareTerminalLog(consoleBuffer, consoleErrBuffer);
+
+    return result == 0 ? TestResult.OK : TestResult.ERROR;
   }
 
   private static String collectConsoleData(final ByteArrayOutputStream out, final ByteArrayOutputStream err) {
@@ -314,7 +296,7 @@ public final class TestContainer extends AnnotationVisitor {
     return record.toString();
   }
 
-  private static String makeTerminalRecord(final ByteArrayOutputStream out, final ByteArrayOutputStream err) {
+  private static String prepareTerminalLog(final ByteArrayOutputStream out, final ByteArrayOutputStream err) {
     final StringBuilder record = new StringBuilder();
     record.append(collectConsoleData(out, err));
     return record.toString();
@@ -325,4 +307,12 @@ public final class TestContainer extends AnnotationVisitor {
     return this.className + '#' + this.methodName;
   }
 
+  public String getLastTerminalOut() {
+    return this.lastTerminalOut;
+  }
+  
+  public void dispose(){
+    this.lastTerminalOut = null;
+  }
+  
 }

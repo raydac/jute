@@ -23,6 +23,13 @@ import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.junit.Assert;
 
 public class JuteMojoTest extends AbstractMojoTestCase {
+  
+  private JuteMojo init(final File config) throws Exception {
+    final JuteMojo mojo = (JuteMojo) this.configureMojo(new JuteMojo(), "jute", config);
+    assertNotNull(mojo);
+    return mojo;
+  }
+
 
   @Override
   protected void setUp() throws Exception {
@@ -35,11 +42,7 @@ public class JuteMojoTest extends AbstractMojoTestCase {
   }
 
   public void testDefaultConfig() throws Exception {
-    final File pom = getTestFile("src/test/resources/com/igormaznitsa/jute/testcfgs/testDefaultConfig.xml");
-    assertNotNull(pom);
-    assertTrue(pom.exists());
-
-    final JuteMojo myMojo = (JuteMojo) lookupMojo("jute", pom);
+    final JuteMojo myMojo = init(getTestFile("src/test/resources/com/igormaznitsa/jute/testcfgs/testDefaultConfig.xml"));
     assertNotNull(myMojo);
 
     assertEquals(false,myMojo.isVerbose());
@@ -58,11 +61,7 @@ public class JuteMojoTest extends AbstractMojoTestCase {
   }
 
   public void testNonDefaultConfig() throws Exception {
-    final File pom = getTestFile("src/test/resources/com/igormaznitsa/jute/testcfgs/testNonDefaultConfig.xml");
-    assertNotNull(pom);
-    assertTrue(pom.exists());
-
-    final JuteMojo myMojo = (JuteMojo) lookupMojo("jute", pom);
+    final JuteMojo myMojo = init(getTestFile("src/test/resources/com/igormaznitsa/jute/testcfgs/testNonDefaultConfig.xml"));
     assertNotNull(myMojo);
 
     assertEquals(true,myMojo.isVerbose());

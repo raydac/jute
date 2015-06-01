@@ -15,13 +15,15 @@
  */
 package com.igormaznitsa.jute;
 
-import com.igormaznitsa.jute.exceptions.IgnoredTestException;
+import com.igormaznitsa.jute.TestContainer.TestResult;
 import com.igormaznitsa.jute.runners.JUnitSingleTestMethodRunner;
 import com.igormaznitsa.jute.runners.JUteSingleTestMethodRunner;
 import com.jcabi.aether.Classpath;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.*;
 import org.apache.commons.io.filefilter.*;
 import org.apache.commons.lang.SystemUtils;
@@ -45,6 +47,11 @@ import org.springframework.util.AntPathMatcher;
 @Mojo(name = "jute", defaultPhase = LifecyclePhase.TEST, threadSafe = true, requiresDependencyResolution = ResolutionScope.TEST)
 public class JuteMojo extends AbstractMojo {
 
+  private final ThreadPoolExecutor CACHED_EXECUTOR = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
+
+  private static final String TERMINAL_SECTION_START = "$$$89234098234-923598oiojadsfsldkfqwoiueq4190284";
+  private static final String TERMINAL_SECTION_END = "$&^*@UYYI(*&(*@$(I@(*#@(**^&*&#$IUWYRWIHDKY(@#";
+  private static final String TEST_RESULT_PREFIX = "$$$*>";
   private static final String[] EMPTY_STR = new String[0];
 
   static final String ANNO_TEST = "Lorg/junit/Test;";
@@ -53,6 +60,15 @@ public class JuteMojo extends AbstractMojo {
   static final String JUNIT_SINGLE_RUNNER_CLASS = JUnitSingleTestMethodRunner.class.getName();
   static final String JUTE_SINGLE_RUNNER_CLASS = JUteSingleTestMethodRunner.class.getName();
 
+  private static final PeriodFormatter TIME_FORMATTER = new PeriodFormatterBuilder()
+          .printZeroAlways()
+          .minimumPrintedDigits(2)
+          .appendHours().appendSeparator(":")
+          .appendMinutes().appendSeparator(":")
+          .appendSeconds().appendSeparator(".")
+          .appendMillis().toFormatter();
+
+  
   @Parameter(defaultValue = "${project}", readonly = true)
   private MavenProject project;
 
@@ -468,8 +484,8 @@ public class JuteMojo extends AbstractMojo {
     getLog().info("Detected " + Utils.calcNumberOfItems(extractedTestMethods) + " potential test method(s)");
     getLog().info("");
 
-    int startedCounter = 0;
-    int errorCounter = 0;
+    final AtomicInteger startedCounter = new AtomicInteger();
+    final AtomicInteger errorCounter = new AtomicInteger();
 
     int maxTestNameLength = 0;
     for (final Map.Entry<TestClassProcessor, List<TestContainer>> e : extractedTestMethods.entrySet()) {
@@ -482,81 +498,254 @@ public class JuteMojo extends AbstractMojo {
 
     for (final Map.Entry<TestClassProcessor, List<TestContainer>> e : extractedTestMethods.entrySet()) {
       getLog().info(e.getKey().getClassName());
-      getLog().info(" ┬");
+      getLog().info(" "+(char)0x2502);
 
-      final StringBuilder terminal = new StringBuilder();
+      int nextTestIndex = 0;
 
-      for (int i = 0; i < e.getValue().size(); i++) {
-        terminal.setLength(0);
-
-        final TestContainer tc = e.getValue().get(i);
+      final List<String> logStrings = new ArrayList<String>();
+      
+      while (!Thread.currentThread().isInterrupted() && nextTestIndex < e.getValue().size()) {
         try {
-          startedCounter++;
-
-          final String prefix;
-          if (e.getValue().size() == 1 || i == e.getValue().size() - 1) {
-            prefix = " └";
-          }
-          else {
-            prefix = " ├";
-          }
-
-          final boolean success = tc.executeTest(getLog(), prefix, terminal, this.onlyAnnotated, maxTestNameLength, testClassPath, this.javaProperties, this.env);
-
-          if (!success) {
-            errorCounter++;
-          }
-
-          if (terminal.length() > 0) {
-            final List<String> splitted = Utils.splitToLines(terminal.toString());
-            final int maxlineWidth = Utils.getMaxLineWidth(splitted);
-            final StringBuilder ramka = new StringBuilder();
-            for(int s=0;s<maxlineWidth;s++){
-              ramka.append('═');
-            }
-            final String ramkaStr = ramka.toString();
-            getLog().info('╔'+ramkaStr+'╗');
-
-            for (final String s : splitted) {
-              if (success) {
-                getLog().info(s);
-              }
-              else {
-                getLog().error(s);
-              }
-            }
-            getLog().info('╚'+ramkaStr+'╝');
-          }
-
-        }
-        catch (IgnoredTestException ex) {
-
+          logStrings.clear();
+          final int prevStartIndex = nextTestIndex;
+          final int numberOfExecuted = executeNextTestsFromList(logStrings, maxTestNameLength, testClassPath, e.getValue(), prevStartIndex, startedCounter, errorCounter);
+          getLog().debug("Executed "+numberOfExecuted+" test(s)");
+          printExecutionResultIntoLog(logStrings);
+          nextTestIndex += numberOfExecuted;
         }
         catch (Throwable ex) {
-          throw new MojoExecutionException("Error during test method execution '" + tc + '\'', ex);
+          throw new MojoExecutionException("Critical error during a test method execution", ex);
         }
       }
       getLog().info("");
     }
 
-    final Duration duration = new Duration(startTime, System.currentTimeMillis());
-    final Period period = duration.toPeriod().normalizedStandard(PeriodType.time());
-    final PeriodFormatter format = new PeriodFormatterBuilder()
-            .printZeroAlways()
-            .minimumPrintedDigits(2)
-            .appendHours().appendSeparator(":")
-            .appendMinutes().appendSeparator(":")
-            .appendSeconds().appendSeparator(".")
-            .appendMillis().toFormatter();
-    getLog().info(String.format("Tests run: %d, Errors: %d, Total time: %s", startedCounter, errorCounter, format.print(period)));
+    final long delay = System.currentTimeMillis() - startTime;
+    getLog().info(String.format("Tests run: %d, Errors: %d, Total time: %s", startedCounter.get(), errorCounter.get(), printTimeDelay(delay)));
 
-    if (errorCounter != 0) {
+    if (errorCounter.get() != 0) {
       throw new MojoExecutionException("Detected failed tests, see session log");
     }
   }
 
+  private static String printTimeDelay(final long timeInMilliseconds){
+    final Duration duration = new Duration(timeInMilliseconds);
+    final Period period = duration.toPeriod().normalizedStandard(PeriodType.time());
+    return TIME_FORMATTER.print(period);
+  }
+  
+  private void printExecutionResultIntoLog(final List<String> result){
+    int numberOfTestsInLog = 0;
+    for(final String s : result){
+      numberOfTestsInLog += s.startsWith(TEST_RESULT_PREFIX) ? 1 : 0;
+    }
+    
+    int testIndex = 0;
+    int line = 0;
+    while(testIndex<numberOfTestsInLog){
+      final boolean lastTest = testIndex == numberOfTestsInLog - 1;
+      final String str = result.get(line++);
+      
+      if (str.startsWith(TEST_RESULT_PREFIX)){
+        testIndex ++;
+        final String substr = str.substring(TEST_RESULT_PREFIX.length());
+        if (lastTest){
+          getLog().info(" "+(char)0x2514+substr);
+        } else {
+          getLog().info(" " + (char) 0x251C+ substr);
+        } 
+      } else if (str.equals(TERMINAL_SECTION_START)){
+        getLog().info(">-------------------------------------------------------------------------------<");
+        while(true){
+          final String termStr = result.get(++line);
+          if (termStr.equals(TERMINAL_SECTION_END)) {
+            getLog().info("<------------------------------------------------------------------------------->");
+            break;
+          }
+          getLog().info(" "+termStr);
+        }
+      } else {
+        getLog().warn("Unexpected log string: "+str);
+      }
+    }
+  }
+  
+  private static String makeStr(final int len, final char ch) {
+    final StringBuilder result = new StringBuilder(len);
+    for (int i = 0; i < len; i++) {
+      result.append(ch);
+    }
+    return result.toString();
+  }
+
+  private static int getMaxStrLen(final List<String> list) {
+    int len = 0;
+    for (final String s : list) {
+      if (s.length() > len) {
+        len = s.length();
+      }
+    }
+    return len;
+  }
+
+  private static int getMaxStrLen(final String[] list) {
+    int len = 0;
+    for (final String s : list) {
+      if (s.length() > len) {
+        len = s.length();
+      }
+    }
+    return len;
+  }
+
+  private static List<String> makeTestResultReference(final TestContainer test, final long durationInMilliseconds, final int maxTestName, final TestResult testResult, final String terminal) {
+    final List<String> result = new ArrayList<String>();
+    final StringBuilder buffer = new StringBuilder();
+    buffer.append(TEST_RESULT_PREFIX).append(test.getMethodName());
+    final int len = test.getMethodName().length() + 5;
+    buffer.append(makeStr(len - test.getMethodName().length(), '.'));
+    buffer.append(testResult.name());
+    if (testResult!=TestResult.SKIPPED && durationInMilliseconds>=0L){
+      buffer.append(' ').append('(').append(printTimeDelay(durationInMilliseconds)).append(')');
+    }
+    
+    result.add(buffer.toString());
+    buffer.setLength(0);
+
+    if (terminal != null) {
+      final String[] splittedTerminal = terminal.split("\\n");
+      result.add(TERMINAL_SECTION_START);
+      for (final String s : splittedTerminal) {
+        result.add(s);
+      }
+      result.add(TERMINAL_SECTION_END);
+    }
+
+    return result;
+  }
+
+  private int executeNextTestsFromList(final List<String> logStrings, final int maxTestNameLength, final String testClassPath, final List<TestContainer> testContainers, final int startIndex, final AtomicInteger startedCounter, final AtomicInteger errorCounter) throws Exception {
+    final List<TestContainer> toExecute = new ArrayList<TestContainer>();
+
+    int detectedOrder = -1;
+
+    for (int i = startIndex; i < testContainers.size(); i++) {
+      final TestContainer c = testContainers.get(i);
+      if (detectedOrder < 0) {
+        if (c.getOrder() < 0) {
+          toExecute.add(c);
+        }
+        else {
+          if (toExecute.isEmpty()) {
+            detectedOrder = c.getOrder();
+            toExecute.add(c);
+          }
+          else {
+            break;
+          }
+        }
+      }
+      else {
+        if (c.getOrder() == detectedOrder) {
+          toExecute.add(c);
+        }
+        else {
+          break;
+        }
+      }
+    }
+    final CountDownLatch counterDown;
+
+    if (detectedOrder > 0 && toExecute.size() > 1) {
+      counterDown = new CountDownLatch(toExecute.size());
+    }
+    else {
+      counterDown = null;
+    }
+
+    final List<Throwable> thrownErrors = Collections.synchronizedList(new ArrayList<Throwable>());
+
+    for (final TestContainer container : toExecute) {
+      final Runnable run = new Runnable() {
+        @Override
+        public void run() {
+          final long startTime = System.currentTimeMillis();
+          try {
+            getLog().debug("Start execution: "+container.toString());
+            startedCounter.incrementAndGet();
+            final TestResult result = container.executeTest(getLog(), onlyAnnotated, maxTestNameLength, testClassPath, javaProperties, env);
+            final long endTime = System.currentTimeMillis();
+            if (result == TestResult.ERROR || result == TestResult.TIMEOUT) {
+              errorCounter.incrementAndGet();
+            }
+
+            if (logStrings != null) {
+              synchronized (logStrings) {
+                logStrings.addAll(makeTestResultReference(container, endTime-startTime, maxTestNameLength, result, (container.isEnforceOut() || result != TestResult.OK) ? container.getLastTerminalOut() : null));
+              }
+            }
+          }
+          catch (Throwable thr) {
+            getLog().debug("Error during execution "+container.toString(),thr);
+            thrownErrors.add(thr);
+          }
+          finally {
+            getLog().debug("End execution: " + container.toString());
+            if (counterDown != null) {
+              counterDown.countDown();
+            }
+          }
+        }
+      };
+      if (counterDown == null) {
+        getLog().debug("Sync.execution: " + container.toString());
+        run.run();
+      }
+      else {
+        getLog().debug("Async.execution: " + container.toString());
+        CACHED_EXECUTOR.execute(run);
+        try {
+          counterDown.await();
+        }
+        catch (InterruptedException ex) {
+          getLog().error(ex);
+        }
+      }
+
+      if (!thrownErrors.isEmpty()) {
+        for (final Throwable thr : thrownErrors) {
+          getLog().error(thr);
+        }
+      }
+    }
+
+    return toExecute.size();
+  }
+
   private boolean isSkipExecution() {
     return this.isSkip() || this.isSkipTests();
+  }
+
+  private static List<TestContainer> sortDetectedClassMethodsForNameAndOrder(final List<TestContainer> testMethods) {
+    Collections.sort(testMethods, new Comparator<TestContainer>() {
+      @Override
+      public int compare(final TestContainer o1, final TestContainer o2) {
+        final int firstPriority = o1.getOrder();
+        final int secondPriority = o2.getOrder();
+        final String name1 = o1.getMethodName();
+        final String name2 = o2.getMethodName();
+
+        final int result;
+        if (firstPriority == secondPriority) {
+          result = name1.compareTo(name2);
+        }
+        else {
+          result = Integer.compare(firstPriority, secondPriority);
+        }
+        return result;
+      }
+    });
+    return testMethods;
   }
 
   private void fillListByTestMethods(final TestContainer base, final List<String> testClassFilePaths, final Map<TestClassProcessor, List<TestContainer>> detectedTestMap) throws IOException {
@@ -569,7 +758,7 @@ public class JuteMojo extends AbstractMojo {
         final TestClassProcessor tcv = new TestClassProcessor(s, base, this.getLog(), this.verbose, listOfDetectedMethods, normalizeStringArray(this.includeTests), normalizeStringArray(this.excludeTests));
         classReader.accept(tcv, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
 
-        detectedTestMap.put(tcv, listOfDetectedMethods);
+        detectedTestMap.put(tcv, sortDetectedClassMethodsForNameAndOrder(listOfDetectedMethods));
       }
       finally {
         IOUtils.closeQuietly(classInStream);
