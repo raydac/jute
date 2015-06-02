@@ -15,22 +15,24 @@
  */
 package com.igormaznitsa.jute.it;
 
-import java.util.List;
+import java.util.*;
 import org.apache.maven.it.Verifier;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class IntegrationTest extends AbstractJUteITTest{
+public class IntegrationTest extends AbstractJUteITTest {
+
   @Test
   public void testJUnitMarkedTests_JUteDefaultConfig() throws Exception {
     final Verifier verifier = verify("junitMarkedDefaultCfg", false);
-    
+
     final List<String> juteSection = extractJuteSection(verifier);
     final List<String> junitSection = extractJUnitSection(verifier);
-    
+
     assertPattern("^Test_Method1$", junitSection);
     assertNoPattern("^Test_Method2$", junitSection);
     assertPattern("^Test_Method3$", junitSection);
-    
+
     assertPattern("test1\\.+OK", juteSection);
     assertNoPattern("test2\\.+OK", juteSection);
     assertPattern("test3\\.+OK", juteSection);
@@ -38,16 +40,77 @@ public class IntegrationTest extends AbstractJUteITTest{
   }
 
   @Test
+  public void testAlphabetOrdered() throws Exception {
+    final Verifier verifier = verify("alphabetOrdered", false);
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+
+    assertEmpty(junitSection);
+    assertNoPattern("\\[ERROR\\]", juteSection);
+    assertPatternOrder(juteSection, "\\u2504testA1\\.+OK", "\\u2504testA2\\.+OK", "\\u2504testB\\.+OK", "\\u2504testC\\.+OK", "\\u2504testD\\.+OK", "\\u2504testE\\.+OK", "\\u2504testF\\.+OK", "\\u2504testG\\.+OK");
+  }
+
+  @Test
+  public void testParallelExecution() throws Exception {
+    final Verifier verifier = verify("parallelExecution", false);
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+
+    assertEmpty(junitSection);
+    assertNoPattern("\\[ERROR\\]", juteSection);
+
+    assertPatternOrder(juteSection, "\\u2504testA\\.+OK", "\\u2504testB\\.+OK");
+
+    final List<String> parallelList = new ArrayList<String>();
+    boolean started = false;
+    boolean testListStarted = false;
+    for (final String s : juteSection) {
+      if (testListStarted) {
+        if (s.trim().equals("[INFO]")) break;
+        if (s.contains("\u2550")) {
+          parallelList.add(s);
+          started = true;
+        }
+        else {
+          assertFalse("Parallel tests have some between them [" + s + ']', started);
+        }
+      }else{
+        testListStarted = s.contains("\u2502");
+      }
+    }
+
+    assertEquals(3, parallelList.size());
+    boolean testC = false;
+    boolean testD = false;
+    boolean testE = false;
+    for (final String s : parallelList) {
+      if (s.contains("testE")) {
+        testE = true;
+      }
+      if (s.contains("testD")) {
+        testD = true;
+      }
+      if (s.contains("testC")) {
+        testC = true;
+      }
+    }
+    assertTrue(testC && testD && testE);
+
+  }
+
+  @Test
   public void testJUteMarkedTests_JUteDefaultConfig() throws Exception {
     final Verifier verifier = verify("juteMarkedDefaultCfg", false);
-    
+
     final List<String> juteSection = extractJuteSection(verifier);
     final List<String> junitSection = extractJUnitSection(verifier);
-    
+
     assertNoPattern("^Test_Method1$", junitSection);
     assertNoPattern("^Test_Method2$", junitSection);
     assertNoPattern("^Test_Method3$", junitSection);
-    
+
     assertPattern("test1\\.+OK", juteSection);
     assertPattern("test2\\.+SKIPPED", juteSection);
     assertPattern("test3\\.+OK", juteSection);
@@ -57,14 +120,14 @@ public class IntegrationTest extends AbstractJUteITTest{
   @Test
   public void testExcludes() throws Exception {
     final Verifier verifier = verify("excludedFileCfg", false);
-    
+
     final List<String> juteSection = extractJuteSection(verifier);
     final List<String> junitSection = extractJUnitSection(verifier);
-    
+
     assertNoPattern("Method", junitSection);
-  
+
     assertNoPattern("DefaultTest(?!2)", juteSection);
-    
+
     assertPattern("test1\\.+OK", juteSection);
     assertPattern("test2\\.+SKIPPED", juteSection);
     assertPattern("test3\\.+OK", juteSection);
@@ -74,14 +137,14 @@ public class IntegrationTest extends AbstractJUteITTest{
   @Test
   public void testIncludes() throws Exception {
     final Verifier verifier = verify("includedFileCfg", false);
-    
+
     final List<String> juteSection = extractJuteSection(verifier);
     final List<String> junitSection = extractJUnitSection(verifier);
-    
+
     assertNoPattern("Method", junitSection);
-  
+
     assertNoPattern("DefaultTest(?!2)", juteSection);
-    
+
     assertPattern("test1\\.+OK", juteSection);
     assertNoPattern("test2\\.+OK", juteSection);
     assertPattern("test3\\.+OK", juteSection);
@@ -91,12 +154,12 @@ public class IntegrationTest extends AbstractJUteITTest{
   @Test
   public void testTerminalIn() throws Exception {
     final Verifier verifier = verify("terminalIn", false);
-    
+
     final List<String> juteSection = extractJuteSection(verifier);
     final List<String> junitSection = extractJUnitSection(verifier);
-    
+
     assertNoPattern("Method", junitSection);
-    
+
     assertNoPattern("\\[ERROR\\]", juteSection);
     assertPattern("test1\\.+OK", juteSection);
     assertPattern("test2\\.+OK", juteSection);
@@ -105,12 +168,12 @@ public class IntegrationTest extends AbstractJUteITTest{
   @Test
   public void testJvmOptions() throws Exception {
     final Verifier verifier = verify("jvmOptions", false);
-    
+
     final List<String> juteSection = extractJuteSection(verifier);
     final List<String> junitSection = extractJUnitSection(verifier);
-    
+
     assertNoPattern("Method", junitSection);
-    
+
     assertNoPattern("\\[ERROR\\]", juteSection);
     assertPattern("test1\\.+OK", juteSection);
     assertPattern("test2\\.+OK", juteSection);

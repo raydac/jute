@@ -510,7 +510,7 @@ public class JuteMojo extends AbstractMojo {
           final int prevStartIndex = nextTestIndex;
           final int numberOfExecuted = executeNextTestsFromList(logStrings, maxTestNameLength, testClassPath, e.getValue(), prevStartIndex, startedCounter, errorCounter);
           getLog().debug("Executed " + numberOfExecuted + " test(s)");
-          printExecutionResultIntoLog(logStrings);
+          printExecutionResultIntoLog(nextTestIndex+numberOfExecuted >= e.getValue().size(),logStrings);
           nextTestIndex += numberOfExecuted;
         }
         catch (Throwable ex) {
@@ -544,7 +544,7 @@ public class JuteMojo extends AbstractMojo {
     return text;
   }
 
-  private void printExecutionResultIntoLog(final List<String> result) {
+  private void printExecutionResultIntoLog(final boolean endTestBunch, final List<String> result) {
     int numberOfTestsInLog = 0;
     for (final String s : result) {
       numberOfTestsInLog += (s.startsWith(SYNC_TEST_RESULT_PREFIX) || s.startsWith(ASYNC_TEST_RESULT_PREFIX)) ? 1 : 0;
@@ -563,20 +563,20 @@ public class JuteMojo extends AbstractMojo {
         final String substr = extractTestNameFromLogString(str);
 
         final String prefix;
-        if (lastTest) {
+        if (lastTest && endTestBunch) {
           if (syncTask) {
-            prefix = " " + (char) 0x2514 + (char) 0x2500;
+            prefix = " " + (char) 0x2514 + (char) 0x2504;
           }
           else {
-            prefix = " " + (char) 0x2558 + (char) 0x2500;
+            prefix = " " + (char) 0x2558 + (char) 0x2550;
           }
         }
         else {
           if (syncTask) {
-            prefix = " " + (char) 0x251C + (char) 0x2500;
+            prefix = " " + (char) 0x251C + (char) 0x2504;
           }
           else {
-            prefix = " " + (char) 0x25EE + (char) 0x2500;
+            prefix = " " + (char) 0x255E + (char) 0x2550;
           }
         }
         getLog().info(prefix + substr);
@@ -616,11 +616,11 @@ public class JuteMojo extends AbstractMojo {
     return len;
   }
 
-  private static List<String> makeTestResultReference(final boolean syncTest, final TestContainer test, final long durationInMilliseconds, final int maxTestName, final TestResult testResult, final String terminal) {
+  private static List<String> makeTestResultReference(final boolean syncTest, final TestContainer test, final long durationInMilliseconds, final int maxTestNameLength, final TestResult testResult, final String terminal) {
     final List<String> result = new ArrayList<String>();
     final StringBuilder buffer = new StringBuilder();
     buffer.append(syncTest ? SYNC_TEST_RESULT_PREFIX : ASYNC_TEST_RESULT_PREFIX).append(test.getMethodName());
-    final int len = test.getMethodName().length() + 5;
+    final int len = maxTestNameLength + 5;
     buffer.append(makeStr(len - test.getMethodName().length(), '.'));
     buffer.append(testResult.name());
     if (testResult != TestResult.SKIPPED && durationInMilliseconds >= 0L) {
@@ -722,18 +722,19 @@ public class JuteMojo extends AbstractMojo {
       else {
         getLog().debug("Async.execution: " + container.toString());
         CACHED_EXECUTOR.execute(run);
-        try {
-          counterDown.await();
-        }
-        catch (InterruptedException ex) {
-          getLog().error(ex);
-        }
       }
-
-      if (!thrownErrors.isEmpty()) {
-        for (final Throwable thr : thrownErrors) {
-          getLog().error(thr);
-        }
+    }
+    if (counterDown != null) {
+      try {
+        counterDown.await();
+      }
+      catch (InterruptedException ex) {
+        getLog().error(ex);
+      }
+    }
+    if (!thrownErrors.isEmpty()) {
+      for (final Throwable thr : thrownErrors) {
+        getLog().error(thr);
       }
     }
 

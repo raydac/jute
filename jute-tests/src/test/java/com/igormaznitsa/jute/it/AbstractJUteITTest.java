@@ -49,6 +49,11 @@ public abstract class AbstractJUteITTest {
     return buffer.toString();
   }
   
+  protected static void assertEmpty(final List<String> log){
+    assertEquals("Must be sibgle line", 1, log.size());
+    assertEquals("[INFO] ", log.get(0));
+  }
+  
   protected static List<String> extractJuteSection(final Verifier ver) throws IOException {
     final List<String> log = ver.loadLines(ver.getLogFileName(), Charset.defaultCharset().name());
     final List<String> result = new ArrayList<String>();
@@ -57,10 +62,11 @@ public abstract class AbstractJUteITTest {
 
     for (final String s : log) {
       if (juteSection) {
-        if (s.startsWith("[INFO] Tests run:")) {
+        if (s.startsWith("[INFO] Tests run:") || s.startsWith("[INFO] --- ")) {
           juteSection = false;
+        }else{
+          result.add(s);
         }
-        result.add(s);
       }
       else {
         if (s.contains("--- jute:" + PROJECT_VERSION + ":jute")) {
@@ -79,10 +85,11 @@ public abstract class AbstractJUteITTest {
 
     for (final String s : log) {
       if (junitSection) {
-        if (s.startsWith("Tests run:")) {
+        if (s.startsWith("Tests run:") || s.startsWith("[INFO] --- ")) {
           junitSection = false;
+        }else{
+          result.add(s);
         }
-        result.add(s);
       }
       else {
         if (s.contains("--- maven-surefire-plugin:")) {
@@ -91,6 +98,21 @@ public abstract class AbstractJUteITTest {
       }
     }
     return result;
+  }
+  
+  protected void assertPatternOrder(final List<String> text, final String ... regex) {
+    int index = 0;
+    Pattern nextPattern = Pattern.compile(regex[index++]);
+    for (final String s : text){
+      if (nextPattern.matcher(s).find()){
+        if (index >= regex.length) {
+          nextPattern = null;
+          break;
+        }
+        nextPattern = Pattern.compile(regex[index++]);
+      }
+    }
+    assertNull("Error order for "+nextPattern, nextPattern);
   }
   
   protected static void assertPattern(final String regex, final List<String> list){
