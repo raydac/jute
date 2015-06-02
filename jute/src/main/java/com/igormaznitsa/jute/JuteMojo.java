@@ -69,7 +69,6 @@ public class JuteMojo extends AbstractMojo {
           .appendSeconds().appendSeparator(".")
           .appendMillis().toFormatter();
 
-  
   @Parameter(defaultValue = "${project}", readonly = true)
   private MavenProject project;
 
@@ -499,18 +498,18 @@ public class JuteMojo extends AbstractMojo {
 
     for (final Map.Entry<TestClassProcessor, List<TestContainer>> e : extractedTestMethods.entrySet()) {
       getLog().info(e.getKey().getClassName());
-      getLog().info(" "+(char)0x2502);
+      getLog().info(" " + (char) 0x2502);
 
       int nextTestIndex = 0;
 
       final List<String> logStrings = new ArrayList<String>();
-      
+
       while (!Thread.currentThread().isInterrupted() && nextTestIndex < e.getValue().size()) {
         try {
           logStrings.clear();
           final int prevStartIndex = nextTestIndex;
           final int numberOfExecuted = executeNextTestsFromList(logStrings, maxTestNameLength, testClassPath, e.getValue(), prevStartIndex, startedCounter, errorCounter);
-          getLog().debug("Executed "+numberOfExecuted+" test(s)");
+          getLog().debug("Executed " + numberOfExecuted + " test(s)");
           printExecutionResultIntoLog(logStrings);
           nextTestIndex += numberOfExecuted;
         }
@@ -529,56 +528,76 @@ public class JuteMojo extends AbstractMojo {
     }
   }
 
-  private static String printTimeDelay(final long timeInMilliseconds){
+  private static String printTimeDelay(final long timeInMilliseconds) {
     final Duration duration = new Duration(timeInMilliseconds);
     final Period period = duration.toPeriod().normalizedStandard(PeriodType.time());
     return TIME_FORMATTER.print(period);
   }
-  
-  private static String extractTestNameFromLogString(final String text){
-    if (text.startsWith(SYNC_TEST_RESULT_PREFIX)) return text.substring(SYNC_TEST_RESULT_PREFIX.length());
-    if (text.startsWith(ASYNC_TEST_RESULT_PREFIX)) return text.substring(ASYNC_TEST_RESULT_PREFIX.length());
+
+  private static String extractTestNameFromLogString(final String text) {
+    if (text.startsWith(SYNC_TEST_RESULT_PREFIX)) {
+      return text.substring(SYNC_TEST_RESULT_PREFIX.length());
+    }
+    if (text.startsWith(ASYNC_TEST_RESULT_PREFIX)) {
+      return text.substring(ASYNC_TEST_RESULT_PREFIX.length());
+    }
     return text;
   }
-  
-  private void printExecutionResultIntoLog(final List<String> result){
+
+  private void printExecutionResultIntoLog(final List<String> result) {
     int numberOfTestsInLog = 0;
-    for(final String s : result){
-      numberOfTestsInLog += (s.startsWith(SYNC_TEST_RESULT_PREFIX) || s.startsWith(ASYNC_TEST_RESULT_PREFIX))? 1 : 0;
+    for (final String s : result) {
+      numberOfTestsInLog += (s.startsWith(SYNC_TEST_RESULT_PREFIX) || s.startsWith(ASYNC_TEST_RESULT_PREFIX)) ? 1 : 0;
     }
-    
+
     int testIndex = 0;
     int line = 0;
-    
-    while(testIndex<numberOfTestsInLog){
+
+    while (testIndex < numberOfTestsInLog) {
       final boolean lastTest = testIndex == numberOfTestsInLog - 1;
       final String str = result.get(line++);
-      
-      if (str.startsWith(SYNC_TEST_RESULT_PREFIX) || str.startsWith(ASYNC_TEST_RESULT_PREFIX)){
+
+      if (str.startsWith(SYNC_TEST_RESULT_PREFIX) || str.startsWith(ASYNC_TEST_RESULT_PREFIX)) {
         final boolean syncTask = str.startsWith(SYNC_TEST_RESULT_PREFIX);
-        testIndex ++;
+        testIndex++;
         final String substr = extractTestNameFromLogString(str);
-        if (lastTest){
-          getLog().info(" "+(syncTask ? (char)0x2514 : (char) 0x2558)+substr);
-        } else {
-          getLog().info(" " + (syncTask ? (char) 0x251C : (char) 0x255E)+ substr);
-        } 
-      } else if (str.equals(TERMINAL_SECTION_START)){
+
+        final String prefix;
+        if (lastTest) {
+          if (syncTask) {
+            prefix = " " + (char) 0x2514 + (char) 0x2500;
+          }
+          else {
+            prefix = " " + (char) 0x2558 + (char) 0x2500;
+          }
+        }
+        else {
+          if (syncTask) {
+            prefix = " " + (char) 0x251C + (char) 0x2500;
+          }
+          else {
+            prefix = " " + (char) 0x25EE + (char) 0x2500;
+          }
+        }
+        getLog().info(prefix + substr);
+      }
+      else if (str.equals(TERMINAL_SECTION_START)) {
         getLog().info(">-------------------------------------------------------------------------------<");
-        while(true){
+        while (true) {
           final String termStr = result.get(++line);
           if (termStr.equals(TERMINAL_SECTION_END)) {
             getLog().info("<------------------------------------------------------------------------------->");
             break;
           }
-          getLog().info(" "+termStr);
+          getLog().info(" " + termStr);
         }
-      } else {
-        getLog().warn("Unexpected log string: "+str);
+      }
+      else {
+        getLog().warn("Unexpected log string: " + str);
       }
     }
   }
-  
+
   private static String makeStr(final int len, final char ch) {
     final StringBuilder result = new StringBuilder(len);
     for (int i = 0; i < len; i++) {
@@ -604,10 +623,10 @@ public class JuteMojo extends AbstractMojo {
     final int len = test.getMethodName().length() + 5;
     buffer.append(makeStr(len - test.getMethodName().length(), '.'));
     buffer.append(testResult.name());
-    if (testResult!=TestResult.SKIPPED && durationInMilliseconds>=0L){
+    if (testResult != TestResult.SKIPPED && durationInMilliseconds >= 0L) {
       buffer.append(' ').append('(').append(printTimeDelay(durationInMilliseconds)).append(')');
     }
-    
+
     result.add(buffer.toString());
     buffer.setLength(0);
 
@@ -670,7 +689,7 @@ public class JuteMojo extends AbstractMojo {
         public void run() {
           final long startTime = System.currentTimeMillis();
           try {
-            getLog().debug("Start execution: "+container.toString());
+            getLog().debug("Start execution: " + container.toString());
             startedCounter.incrementAndGet();
             final TestResult result = container.executeTest(getLog(), onlyAnnotated, maxTestNameLength, testClassPath, javaProperties, env);
             final long endTime = System.currentTimeMillis();
@@ -680,12 +699,12 @@ public class JuteMojo extends AbstractMojo {
 
             if (logStrings != null) {
               synchronized (logStrings) {
-                logStrings.addAll(makeTestResultReference(counterDown == null, container, endTime-startTime, maxTestNameLength, result, (container.isEnforceOut() || result != TestResult.OK) ? container.getLastTerminalOut() : null));
+                logStrings.addAll(makeTestResultReference(counterDown == null, container, endTime - startTime, maxTestNameLength, result, (container.isEnforceOut() || result != TestResult.OK) ? container.getLastTerminalOut() : null));
               }
             }
           }
           catch (Throwable thr) {
-            getLog().debug("Error during execution "+container.toString(),thr);
+            getLog().debug("Error during execution " + container.toString(), thr);
             thrownErrors.add(thr);
           }
           finally {
