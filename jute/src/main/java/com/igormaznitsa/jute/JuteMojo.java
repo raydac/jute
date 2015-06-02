@@ -51,7 +51,8 @@ public class JuteMojo extends AbstractMojo {
 
   private static final String TERMINAL_SECTION_START = "$$$89234098234-923598oiojadsfsldkfqwoiueq4190284";
   private static final String TERMINAL_SECTION_END = "$&^*@UYYI(*&(*@$(I@(*#@(**^&*&#$IUWYRWIHDKY(@#";
-  private static final String TEST_RESULT_PREFIX = "$$$*>";
+  private static final String SYNC_TEST_RESULT_PREFIX = "$$$*>";
+  private static final String ASYNC_TEST_RESULT_PREFIX = ">$$$*>";
   private static final String[] EMPTY_STR = new String[0];
 
   static final String ANNO_TEST = "Lorg/junit/Test;";
@@ -534,25 +535,33 @@ public class JuteMojo extends AbstractMojo {
     return TIME_FORMATTER.print(period);
   }
   
+  private static String extractTestNameFromLogString(final String text){
+    if (text.startsWith(SYNC_TEST_RESULT_PREFIX)) return text.substring(SYNC_TEST_RESULT_PREFIX.length());
+    if (text.startsWith(ASYNC_TEST_RESULT_PREFIX)) return text.substring(ASYNC_TEST_RESULT_PREFIX.length());
+    return text;
+  }
+  
   private void printExecutionResultIntoLog(final List<String> result){
     int numberOfTestsInLog = 0;
     for(final String s : result){
-      numberOfTestsInLog += s.startsWith(TEST_RESULT_PREFIX) ? 1 : 0;
+      numberOfTestsInLog += (s.startsWith(SYNC_TEST_RESULT_PREFIX) || s.startsWith(ASYNC_TEST_RESULT_PREFIX))? 1 : 0;
     }
     
     int testIndex = 0;
     int line = 0;
+    
     while(testIndex<numberOfTestsInLog){
       final boolean lastTest = testIndex == numberOfTestsInLog - 1;
       final String str = result.get(line++);
       
-      if (str.startsWith(TEST_RESULT_PREFIX)){
+      if (str.startsWith(SYNC_TEST_RESULT_PREFIX) || str.startsWith(ASYNC_TEST_RESULT_PREFIX)){
+        final boolean syncTask = str.startsWith(SYNC_TEST_RESULT_PREFIX);
         testIndex ++;
-        final String substr = str.substring(TEST_RESULT_PREFIX.length());
+        final String substr = extractTestNameFromLogString(str);
         if (lastTest){
-          getLog().info(" "+(char)0x2514+substr);
+          getLog().info(" "+(syncTask ? (char)0x2514 : (char) 0x2558)+substr);
         } else {
-          getLog().info(" " + (char) 0x251C+ substr);
+          getLog().info(" " + (syncTask ? (char) 0x251C : (char) 0x255E)+ substr);
         } 
       } else if (str.equals(TERMINAL_SECTION_START)){
         getLog().info(">-------------------------------------------------------------------------------<");
@@ -588,20 +597,10 @@ public class JuteMojo extends AbstractMojo {
     return len;
   }
 
-  private static int getMaxStrLen(final String[] list) {
-    int len = 0;
-    for (final String s : list) {
-      if (s.length() > len) {
-        len = s.length();
-      }
-    }
-    return len;
-  }
-
-  private static List<String> makeTestResultReference(final TestContainer test, final long durationInMilliseconds, final int maxTestName, final TestResult testResult, final String terminal) {
+  private static List<String> makeTestResultReference(final boolean syncTest, final TestContainer test, final long durationInMilliseconds, final int maxTestName, final TestResult testResult, final String terminal) {
     final List<String> result = new ArrayList<String>();
     final StringBuilder buffer = new StringBuilder();
-    buffer.append(TEST_RESULT_PREFIX).append(test.getMethodName());
+    buffer.append(syncTest ? SYNC_TEST_RESULT_PREFIX : ASYNC_TEST_RESULT_PREFIX).append(test.getMethodName());
     final int len = test.getMethodName().length() + 5;
     buffer.append(makeStr(len - test.getMethodName().length(), '.'));
     buffer.append(testResult.name());
@@ -681,7 +680,7 @@ public class JuteMojo extends AbstractMojo {
 
             if (logStrings != null) {
               synchronized (logStrings) {
-                logStrings.addAll(makeTestResultReference(container, endTime-startTime, maxTestNameLength, result, (container.isEnforceOut() || result != TestResult.OK) ? container.getLastTerminalOut() : null));
+                logStrings.addAll(makeTestResultReference(counterDown == null, container, endTime-startTime, maxTestNameLength, result, (container.isEnforceOut() || result != TestResult.OK) ? container.getLastTerminalOut() : null));
               }
             }
           }
