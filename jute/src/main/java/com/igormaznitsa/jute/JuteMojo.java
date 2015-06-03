@@ -28,10 +28,10 @@ import org.apache.commons.io.*;
 import org.apache.commons.io.filefilter.*;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.maven.execution.MavenSession;
-import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.*;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.*;
+import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.project.MavenProject;
 import org.joda.time.*;
 import org.joda.time.format.*;
@@ -435,7 +435,7 @@ public class JuteMojo extends AbstractMojo {
   }
 
   @Override
-  public void execute() throws MojoExecutionException {
+  public void execute() throws MojoExecutionException, MojoFailureException {
     if (isSkipExecution()) {
       getLog().info("Tests are skipped.");
       return;
@@ -510,7 +510,7 @@ public class JuteMojo extends AbstractMojo {
           final int prevStartIndex = nextTestIndex;
           final int numberOfExecuted = executeNextTestsFromList(logStrings, maxTestNameLength, testClassPath, e.getValue(), prevStartIndex, startedCounter, errorCounter);
           getLog().debug("Executed " + numberOfExecuted + " test(s)");
-          printExecutionResultIntoLog(nextTestIndex+numberOfExecuted >= e.getValue().size(),logStrings);
+          printExecutionResultIntoLog(nextTestIndex + numberOfExecuted >= e.getValue().size(), logStrings);
           nextTestIndex += numberOfExecuted;
         }
         catch (Throwable ex) {
@@ -524,7 +524,7 @@ public class JuteMojo extends AbstractMojo {
     getLog().info(String.format("Tests run: %d, Errors: %d, Total time: %s", startedCounter.get(), errorCounter.get(), printTimeDelay(delay)));
 
     if (errorCounter.get() != 0) {
-      throw new MojoExecutionException("Detected failed tests, see session log");
+      throw new MojoFailureException("Detected failed tests, see session log");
     }
   }
 
@@ -582,15 +582,22 @@ public class JuteMojo extends AbstractMojo {
         getLog().info(prefix + substr);
       }
       else if (str.equals(TERMINAL_SECTION_START)) {
-        getLog().info(">-------------------------------------------------------------------------------<");
+        final List<String> terminal = new ArrayList<String>();
+        int maxWidth = 0;
         while (true) {
-          final String termStr = result.get(++line);
+          final String termStr = result.get(line++);
           if (termStr.equals(TERMINAL_SECTION_END)) {
-            getLog().info("<------------------------------------------------------------------------------->");
             break;
           }
-          getLog().info(" " + termStr);
+          terminal.add(termStr);
+          maxWidth = Math.max(termStr.length(), maxWidth);
         }
+
+        getLog().info((char)0x250F+makeStr(maxWidth, (char)0x2501)+(char)0x2513);
+        for(final String s : terminal){
+          getLog().info(" "+s);
+        }
+        getLog().info((char)0x2517+makeStr(maxWidth, (char)0x2501)+(char)0x251B);
       }
       else {
         getLog().warn("Unexpected log string: " + str);
@@ -749,17 +756,22 @@ public class JuteMojo extends AbstractMojo {
     Collections.sort(testMethods, new Comparator<TestContainer>() {
       @Override
       public int compare(final TestContainer o1, final TestContainer o2) {
-        final int firstPriority = o1.getOrder();
-        final int secondPriority = o2.getOrder();
+        final int order1 = o1.getOrder();
+        final int order2 = o2.getOrder();
+
+        if (order1 < 0 && order2 < 0) {
+          return 0;
+        }
+
         final String name1 = o1.getMethodName();
         final String name2 = o2.getMethodName();
 
         final int result;
-        if (firstPriority == secondPriority) {
+        if (order1 == order2) {
           result = name1.compareTo(name2);
         }
         else {
-          result = Integer.compare(firstPriority, secondPriority);
+          result = Integer.compare(order1, order2);
         }
         return result;
       }

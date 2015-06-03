@@ -291,8 +291,8 @@ public final class TestContainer extends AnnotationVisitor {
 
   private static String collectConsoleData(final ByteArrayOutputStream out, final ByteArrayOutputStream err) {
     final StringBuilder record = new StringBuilder();
-    record.append(">>>Console").append(Utils.lineSeparator).append(new String(out.toByteArray(), Charset.defaultCharset())).append(Utils.lineSeparator);
-    record.append(">>>Errors").append(Utils.lineSeparator).append(new String(err.toByteArray(), Charset.defaultCharset()));
+    record.append((char)0x2562+"Output"+(char) 0x255F).append(Utils.lineSeparator).append(new String(out.toByteArray(), Charset.defaultCharset())).append(Utils.lineSeparator);
+    record.append((char) 0x2563 +"Error"+ (char) 0x2560).append(Utils.lineSeparator).append(new String(err.toByteArray(), Charset.defaultCharset()));
     return record.toString();
   }
 
