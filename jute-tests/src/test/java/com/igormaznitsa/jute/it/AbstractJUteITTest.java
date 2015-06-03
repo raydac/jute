@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.regex.Pattern;
+import org.apache.maven.it.VerificationException;
 import static org.junit.Assert.*;
 import org.apache.maven.it.Verifier;
 import org.apache.maven.it.util.ResourceExtractor;
@@ -36,24 +37,38 @@ public abstract class AbstractJUteITTest {
 
   protected Verifier verify(final String testName, final boolean debug) throws Exception {
     final Verifier ver = new Verifier(getTestFolder(testName).getAbsolutePath(), debug);
-    ver.executeGoals(Arrays.asList("compile", "test"),Collections.singletonMap("maven.jute.version", PROJECT_VERSION));
+    ver.executeGoals(Arrays.asList("compile", "test"), Collections.singletonMap("maven.jute.version", PROJECT_VERSION));
     return ver;
   }
 
+  protected Verifier verifyWithExpectedError(final String testName, final boolean debug) throws Exception {
+    final Verifier ver = new Verifier(getTestFolder(testName).getAbsolutePath(), debug);
+    try {
+      ver.executeGoals(Arrays.asList("compile", "test"), Collections.singletonMap("maven.jute.version", PROJECT_VERSION));
+    }
+    catch (VerificationException ex) {
+      return ver;
+    }
+    fail("There was not verify error");
+    return null;
+  }
+
   protected static String list2Str(final List<String> list) {
-    if (list==null || list.isEmpty()) return "";
+    if (list == null || list.isEmpty()) {
+      return "";
+    }
     final StringBuilder buffer = new StringBuilder();
-    for(final String s : list){
+    for (final String s : list) {
       buffer.append(s).append('\n');
     }
     return buffer.toString();
   }
-  
-  protected static void assertEmpty(final List<String> log){
+
+  protected static void assertEmpty(final List<String> log) {
     assertEquals("Must be sibgle line", 1, log.size());
     assertEquals("[INFO] ", log.get(0));
   }
-  
+
   protected static List<String> extractJuteSection(final Verifier ver) throws IOException {
     final List<String> log = ver.loadLines(ver.getLogFileName(), Charset.defaultCharset().name());
     final List<String> result = new ArrayList<String>();
@@ -64,7 +79,8 @@ public abstract class AbstractJUteITTest {
       if (juteSection) {
         if (s.startsWith("[INFO] Tests run:") || s.startsWith("[INFO] --- ")) {
           juteSection = false;
-        }else{
+        }
+        else {
           result.add(s);
         }
       }
@@ -87,7 +103,8 @@ public abstract class AbstractJUteITTest {
       if (junitSection) {
         if (s.startsWith("Tests run:") || s.startsWith("[INFO] --- ")) {
           junitSection = false;
-        }else{
+        }
+        else {
           result.add(s);
         }
       }
@@ -99,12 +116,12 @@ public abstract class AbstractJUteITTest {
     }
     return result;
   }
-  
-  protected void assertPatternOrder(final List<String> text, final String ... regex) {
+
+  protected void assertPatternOrder(final List<String> text, final String... regex) {
     int index = 0;
     Pattern nextPattern = Pattern.compile(regex[index++]);
-    for (final String s : text){
-      if (nextPattern.matcher(s).find()){
+    for (final String s : text) {
+      if (nextPattern.matcher(s).find()) {
         if (index >= regex.length) {
           nextPattern = null;
           break;
@@ -112,13 +129,15 @@ public abstract class AbstractJUteITTest {
         nextPattern = Pattern.compile(regex[index++]);
       }
     }
-    assertNull("Error order for "+nextPattern, nextPattern);
+    assertNull("Error order for " + nextPattern, nextPattern);
   }
-  
-  protected static void assertPattern(final String regex, final List<String> list){
+
+  protected static void assertPattern(final String regex, final List<String> list) {
     final Pattern pattern = Pattern.compile(regex);
-    for(final String s : list){
-      if (pattern.matcher(s).find()) return;
+    for (final String s : list) {
+      if (pattern.matcher(s).find()) {
+        return;
+      }
     }
     for (final String line : list) {
       System.err.println(line);
@@ -127,21 +146,21 @@ public abstract class AbstractJUteITTest {
     fail("Not found pattern: " + pattern.pattern());
   }
 
-  protected static void assertNoPattern(final String regex, final List<String> list){
+  protected static void assertNoPattern(final String regex, final List<String> list) {
     final Pattern pattern = Pattern.compile(regex);
-    for(final String s : list){
+    for (final String s : list) {
       if (pattern.matcher(s).find()) {
         for (final String line : list) {
           System.err.println(line);
         }
-        fail("Detected pattern : "+pattern.pattern());
+        fail("Detected pattern : " + pattern.pattern());
       }
     }
   }
-  
-  private static String glue(final List<String> str){
+
+  private static String glue(final List<String> str) {
     final StringBuilder result = new StringBuilder();
-    for(final String s : str){
+    for (final String s : str) {
       result.append(s).append(System.lineSeparator());
     }
     return result.toString();

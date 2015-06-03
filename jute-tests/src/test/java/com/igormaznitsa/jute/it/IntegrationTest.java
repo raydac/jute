@@ -52,6 +52,20 @@ public class IntegrationTest extends AbstractJUteITTest {
   }
 
   @Test
+  public void testTimeoutExecution() throws Exception {
+    final Verifier verifier = verifyWithExpectedError("timeoutExecution", false);
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+
+    assertEmpty(junitSection);
+    assertPattern("\\u2504testB\\.+TIMEOUT", juteSection);
+    assertPatternOrder(juteSection, "Output","TestB","Error");
+    assertPattern("\\u2504testA\\.+OK", juteSection);
+    assertPattern("\\u2504testC\\.+OK", juteSection);
+  }
+  
+  @Test
   public void testParallelExecution() throws Exception {
     final Verifier verifier = verify("parallelExecution", false);
 
