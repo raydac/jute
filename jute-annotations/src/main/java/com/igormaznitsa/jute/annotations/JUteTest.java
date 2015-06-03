@@ -19,7 +19,7 @@ import java.lang.annotation.*;
 
 /**
  * Annotation shows to JUte that method or all methods of the class should be in scope of JUte.
- * @since 1.0.1
+ * @since 1.1.0
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
