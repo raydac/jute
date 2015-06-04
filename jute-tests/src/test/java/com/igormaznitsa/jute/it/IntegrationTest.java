@@ -36,6 +36,32 @@ public class IntegrationTest extends AbstractJUteITTest {
     assertPattern("0 potential test",juteSection);
   }
 
+  @Test
+  public void testJUteTestParameter() throws Exception {
+    final Verifier verifier = verify("juteTestParameter", false, Collections.singletonMap("jute.test", "*.DefaultTestSec#testSecG"));
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+
+    assertEmpty(junitSection);
+    
+    assertPattern("1 potential test",juteSection);
+    assertPattern("testSecG\\.+OK",juteSection);
+  }
+
+  @Test
+  public void testJUteTestParameter_MarkedJUnitTest() throws Exception {
+    final Verifier verifier = verify("juteTestParameter_JUnitMarked", false, Collections.singletonMap("jute.test", "*.DefaultTestSec#testSecG"));
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+
+    assertEmpty(junitSection);
+    
+    assertPattern("1 potential test",juteSection);
+    assertPattern("testSecG\\.+OK",juteSection);
+  }
+
 
   @Test
   public void testJUnitMarkedTests_JUteDefaultConfig() throws Exception {

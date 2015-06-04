@@ -41,6 +41,15 @@ public abstract class AbstractJUteITTest {
     return ver;
   }
 
+  protected Verifier verify(final String testName, final boolean debug, final Map<String,String> properties) throws Exception {
+    final Verifier ver = new Verifier(getTestFolder(testName).getAbsolutePath(), debug);
+    for(final Map.Entry<String,String> p : properties.entrySet()){
+      ver.getSystemProperties().setProperty(p.getKey(), p.getValue());
+    }
+    ver.executeGoals(Arrays.asList("compile", "test"), Collections.singletonMap("maven.jute.version", PROJECT_VERSION));
+    return ver;
+  }
+
   protected Verifier verifyWithExpectedError(final String testName, final boolean debug) throws Exception {
     final Verifier ver = new Verifier(getTestFolder(testName).getAbsolutePath(), debug);
     try {
