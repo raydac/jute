@@ -65,7 +65,7 @@ public abstract class AbstractJUteITTest {
   }
 
   protected static void assertEmpty(final List<String> log) {
-    assertEquals("Must be sibgle line", 1, log.size());
+    assertEquals("Must be single line", 1, log.size());
     assertEquals("[INFO] ", log.get(0));
   }
 
@@ -102,6 +102,9 @@ public abstract class AbstractJUteITTest {
     for (final String s : log) {
       if (junitSection) {
         if (s.startsWith("Tests run:") || s.startsWith("[INFO] --- ")) {
+          if (s.startsWith("Tests run")){
+            result.add(s);
+          }
           junitSection = false;
         }
         else {

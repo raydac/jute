@@ -21,6 +21,21 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class IntegrationTest extends AbstractJUteITTest {
+  @Test
+  public void testNoTests() throws Exception {
+    final Verifier verifier = verify("noTests", false);
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+
+    assertPattern("Tests run: 0",junitSection);
+    
+    assertNoPattern("DefaultTest", juteSection);
+    assertNoPattern("Test1", juteSection);
+    assertNoPattern("Test2", juteSection);
+    assertPattern("0 potential test",juteSection);
+  }
+
 
   @Test
   public void testJUnitMarkedTests_JUteDefaultConfig() throws Exception {
