@@ -1,8 +1,11 @@
 1.1.0
-- added @JUte annotation
+- reworked project structure
+- added @JUteTest annotation
 - added support of tests non marked by @Test annotation
 - added support of parallel execution of tests
 - minor improvements in logging
+- added support of 'skipTests' and 'maven.test.skip' properties
+- added support of 'jute.test' property
 
 1.0.0
 - initial version

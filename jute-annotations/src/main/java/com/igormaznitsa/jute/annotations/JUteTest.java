@@ -18,46 +18,67 @@ package com.igormaznitsa.jute.annotations;
 import java.lang.annotation.*;
 
 /**
- * Annotation shows to JUte that method or all methods of the class should be in scope of JUte.
+ * Annotation shows to JUte that method or all methods of the class should be in
+ * scope of JUte.
+ *
  * @since 1.1.0
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.METHOD})
 public @interface JUteTest {
+
   /**
    * Java interpreter for the test. Can be path or command.
-   * @return empty string if external parameter should be used
+   *
+   * @return path or command to JVM interpreter
    */
   String jvm() default "";
+
   /**
    * Array contains options for JVM to be used for test start.
+   *
    * @return array of jvm options as strings
    */
   String[] jvmOpts() default {};
+
   /**
    * String to be provided to started process through System.in.
-   * @return empty string if external parameter should be used
+   *
+   * @return string to be read by process through System.in
    */
   String in() default "";
+
   /**
-   * Order of test. Tests with similar order parameters will be started in parallel.
-   * @return negative number shows that test doesn't need any ordering, zero shows that tests with such order should be sorted in alphabetic order (case sensitive), otherwise shows that tests with the same order should be started in parallel.
+   * Order of tests. Tests with similar order parameters will be started in
+   * parallel.
+   *
+   * @return negative number shows that test doesn't need any ordering, zero
+   * shows that tests with the same such order should be sorted in alphabetic
+   * order (case sensitive), positive number shows that tests with the same
+   * order should be started in parallel.
    */
   int order() default -1;
+
   /**
    * Enforce output of process consoles into log.
-   * @return false by default if external parameter should be used
+   *
+   * @return flag to print test console output into log
    */
   boolean enforceOut() default false;
+
   /**
    * Skip the test.
+   *
    * @return true if the test must be skipped
    */
   boolean skip() default false;
+
   /**
    * Timeout for the test process.
-   * @return timeout in milliseconds for started process, zero or negative number if external parameter should be used
+   *
+   * @return timeout in milliseconds for started process, zero or negative
+   * number if no timeout
    */
   long timeout() default 0L;
 }

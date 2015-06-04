@@ -33,7 +33,6 @@ public final class JUteSingleTestMethodRunner extends AbstractRunner {
    * class_name#method_name
    *
    * @param args command line arguments
-   * @throws ClassNotFoundException thrown if test class not found
    */
   public static void main(final String... args) {
     final Class<? extends Annotation> CLASS_JUNIT_AFTER = findAnnotationClass("org.junit.After");
