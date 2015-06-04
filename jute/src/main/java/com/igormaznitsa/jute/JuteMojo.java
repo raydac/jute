@@ -497,6 +497,8 @@ public class JuteMojo extends AbstractMojo {
     }
 
     for (final Map.Entry<TestClassProcessor, List<TestContainer>> e : extractedTestMethods.entrySet()) {
+      if (e.getValue().isEmpty()) continue;
+      
       getLog().info(e.getKey().getClassName());
       getLog().info(" " + (char) 0x2502);
 

@@ -107,12 +107,12 @@ final class TestClassProcessor extends ClassVisitor {
       boolean junitTest;
       boolean juteTest;
       boolean junitIgnore;
-      TestContainer detectedMethods;
+      TestContainer detectedMethod;
 
       @Override
       public AnnotationVisitor visitAnnotation(final String desc, final boolean visible) {
-        if (detectedMethods == null) {
-          detectedMethods = new TestContainer(classFilePath, className, name, clazzParameters == null ? baseParameters : clazzParameters, null);
+        if (detectedMethod == null) {
+          detectedMethod = new TestContainer(classFilePath, className, name, clazzParameters == null ? baseParameters : clazzParameters, null);
         }
 
         AnnotationVisitor result = null;
@@ -124,21 +124,23 @@ final class TestClassProcessor extends ClassVisitor {
         }
         else if (desc.equals(JuteMojo.ANNO_JUTE)) {
           this.juteTest = true;
-          result = detectedMethods;
+          result = detectedMethod;
         }
         return result;
       }
 
       @Override
       public void visitEnd() {
-        if (detectedMethods == null) {
-          detectedMethods = new TestContainer(classFilePath, className, name, clazzParameters == null ? baseParameters : clazzParameters, null);
+        if (detectedMethod == null) {
+          detectedMethod = new TestContainer(classFilePath, className, name, clazzParameters == null ? baseParameters : clazzParameters, null);
         }
-        detectedMethods.setJUnitIgnore(this.junitIgnore);
-        detectedMethods.setJUnitTest(this.junitTest);
-        detectedMethods.setJuteTest(this.juteTest);
-
-        methodList.add(detectedMethods);
+        
+        if (this.junitTest || this.juteTest){
+          detectedMethod.setJUnitIgnore(this.junitIgnore);
+          detectedMethod.setJUnitTest(this.junitTest);
+          detectedMethod.setJuteTest(this.juteTest);
+          methodList.add(detectedMethod);
+        }
       }
     };
   }
