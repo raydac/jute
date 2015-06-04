@@ -22,7 +22,7 @@ import org.objectweb.asm.*;
 
 final class TestClassProcessor extends ClassVisitor {
 
-  private final List<TestContainer> methodList;
+  private final List<TestContainer> detectedTestMethodList;
   private final String[] includedTests;
   private final String[] excludedTests;
   private final String classFilePath;
@@ -34,9 +34,12 @@ final class TestClassProcessor extends ClassVisitor {
   private TestContainer clazzParameters;
   private boolean inappropriateClass;
 
-  TestClassProcessor(final String classFilePath, final TestContainer baseParameters, final Log logger, final boolean verbose, final List<TestContainer> resultList, final String[] includedTestPatterns, final String[] excludedTestPatterns) {
+  private final String juteTestParameter;
+  
+  TestClassProcessor(final String juteTestParameter, final String classFilePath, final TestContainer baseParameters, final Log logger, final boolean verbose, final List<TestContainer> resultList, final String[] includedTestPatterns, final String[] excludedTestPatterns) {
     super(Opcodes.ASM5);
-    this.methodList = resultList;
+    this.juteTestParameter = juteTestParameter;
+    this.detectedTestMethodList = resultList;
     this.includedTests = includedTestPatterns;
     this.excludedTests = excludedTestPatterns;
     this.logger = logger;
@@ -135,11 +138,13 @@ final class TestClassProcessor extends ClassVisitor {
           detectedMethod = new TestContainer(classFilePath, className, name, clazzParameters == null ? baseParameters : clazzParameters, null);
         }
         
-        if (this.junitTest || this.juteTest){
+        this.juteTest = this.juteTest || clazzParameters!=null;
+        
+        if ((this.junitTest || this.juteTest) && Utils.checkClassAndMethodForPattern(juteTestParameter,detectedMethod.getClassName(), detectedMethod.getMethodName(), false)){
           detectedMethod.setJUnitIgnore(this.junitIgnore);
           detectedMethod.setJUnitTest(this.junitTest);
           detectedMethod.setJuteTest(this.juteTest);
-          methodList.add(detectedMethod);
+          detectedTestMethodList.add(detectedMethod);
         }
       }
     };

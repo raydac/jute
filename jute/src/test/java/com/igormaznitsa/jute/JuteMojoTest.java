@@ -34,11 +34,13 @@ public class JuteMojoTest extends AbstractMojoTestCase {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
+    System.clearProperty("jute.test");
   }
 
   @Override
   protected void tearDown() throws Exception {
     super.tearDown();
+    System.clearProperty("jute.test");
   }
 
   public void testDefaultConfig() throws Exception {
@@ -58,9 +60,12 @@ public class JuteMojoTest extends AbstractMojoTestCase {
     assertFalse(myMojo.isSkip());
     assertFalse(myMojo.isSkipTests());
     assertFalse(myMojo.isEnforcePrintConsole());
+    assertNull(myMojo.getJUteTest());
   }
 
   public void testNonDefaultConfig() throws Exception {
+    System.setProperty("jute.test","some.package.DefaultTest#Method");
+    
     final JuteMojo myMojo = init(getTestFile("src/test/resources/com/igormaznitsa/jute/testcfgs/testNonDefaultConfig.xml"));
     assertNotNull(myMojo);
 
@@ -87,5 +92,6 @@ public class JuteMojoTest extends AbstractMojoTestCase {
     assertEquals("fake/jre/bin/java",myMojo.getJava());
     assertTrue(myMojo.isEnforcePrintConsole());
     assertEquals("Some test text",myMojo.getIn());
+    assertEquals("some.package.DefaultTest#Method", myMojo.getJUteTest());
   }
 }

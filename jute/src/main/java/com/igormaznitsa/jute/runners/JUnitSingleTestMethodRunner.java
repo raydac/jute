@@ -15,47 +15,68 @@
  */
 package com.igormaznitsa.jute.runners;
 
-import org.junit.runner.*;
-import org.junit.runner.notification.Failure;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * Runner to start single test method with JUnit.
- * 
+ *
  * @author Igor Maznitsa (http://www.igormaznitsa.com)
  */
-public final class JUnitSingleTestMethodRunner {
+public final class JUnitSingleTestMethodRunner extends AbstractRunner {
 
   /**
-   * Execute method provided as the first argument in format class_name#method_name
+   * Execute method provided as the first argument in format
+   * class_name#method_name
+   *
    * @param args command line arguments
-   * @throws ClassNotFoundException thrown if test class not found
    */
-  public static void main(final String... args) throws ClassNotFoundException {
-    if (args == null || args.length == 0){
+  public static void main(final String... args) {
+    final Class<?> CLASS_JUNIT_REQUEST = findClass("org.junit.runner.Request");
+    final Class<?> CLASS_JUNIT_CORE = findClass("org.junit.runner.JUnitCore");
+    final Class<?> CLASS_JUNIT_RESULT = findClass("org.junit.runner.Result");
+    final Class<?> CLASS_JUNIT_FAILURE = findClass("org.junit.runner.notification.Failure");
+
+    if (CLASS_JUNIT_CORE == null || CLASS_JUNIT_FAILURE == null || CLASS_JUNIT_REQUEST == null || CLASS_JUNIT_RESULT == null) {
+      System.err.println("Can't find needed JUnit classes, either JUnit is not provided or incompatible version!");
+      System.exit(1);
+    }
+
+    if (args == null || args.length == 0) {
       System.err.println("No provided test method name");
       System.exit(999);
     }
-    
-    Result result = null;
+    Object result = null;
     try {
       final String[] classAndMethod = args[0].split("#");
-      final Request request = Request.method(Class.forName(classAndMethod[0]), classAndMethod[1]);
-      result = new JUnitCore().run(request);
+      final Object requestObject = CLASS_JUNIT_REQUEST.getMethod("method", Class.class, String.class).invoke(null, Class.forName(classAndMethod[0]), classAndMethod[1]);
+      result = CLASS_JUNIT_CORE.getMethod("run", CLASS_JUNIT_REQUEST).invoke(CLASS_JUNIT_CORE.newInstance(), requestObject);
     }
     catch (Throwable thr) {
-      thr.printStackTrace(System.err);
+      thr.printStackTrace();
+      if (thr instanceof InvocationTargetException) {
+        final Throwable cause = thr.getCause();
+        if (cause == null) {
+          thr.printStackTrace(System.err);
+        }
+        else {
+          cause.printStackTrace(System.err);
+        }
+      }
+      else {
+        thr.printStackTrace(System.err);
+      }
     }
 
     if (result == null) {
       System.exit(2);
     }
-    else if (result.wasSuccessful()) {
+    else if (execBoolean(result, "wasSuccessful")) {
       System.exit(0);
     }
     else {
-      for (final Failure f : result.getFailures()) {
-        System.err.println(f.getMessage());
-        System.err.println(f.getTrace());
+      for (final Object f : execList(result, "getFailures")) {
+        System.err.println(execString(f, "getMessage"));
+        System.err.println(execString(f, "getTrace"));
       }
       System.exit(1);
     }

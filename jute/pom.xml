@@ -76,7 +76,7 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.12</version>
-      <optional>true</optional>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>joda-time</groupId>

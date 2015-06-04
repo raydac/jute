@@ -52,6 +52,7 @@
               <value>javaValue1</value>
             </property>
           </javaProperties>
+          <juteTest>some.package.DefaultTest#Method</juteTest>
         </configuration>
       </plugin>
     </plugins>

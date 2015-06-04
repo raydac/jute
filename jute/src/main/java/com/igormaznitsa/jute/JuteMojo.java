@@ -33,8 +33,6 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.*;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.project.MavenProject;
-import org.joda.time.*;
-import org.joda.time.format.*;
 import org.objectweb.asm.*;
 import org.springframework.util.AntPathMatcher;
 
@@ -60,14 +58,6 @@ public class JuteMojo extends AbstractMojo {
   static final String ANNO_JUTE = "Lcom/igormaznitsa/jute/annotations/JUteTest;";
   static final String JUNIT_SINGLE_RUNNER_CLASS = JUnitSingleTestMethodRunner.class.getName();
   static final String JUTE_SINGLE_RUNNER_CLASS = JUteSingleTestMethodRunner.class.getName();
-
-  private static final PeriodFormatter TIME_FORMATTER = new PeriodFormatterBuilder()
-          .printZeroAlways()
-          .minimumPrintedDigits(2)
-          .appendHours().appendSeparator(":")
-          .appendMinutes().appendSeparator(":")
-          .appendSeconds().appendSeparator(".")
-          .appendMillis().toFormatter();
 
   @Parameter(defaultValue = "${project}", readonly = true)
   private MavenProject project;
@@ -204,6 +194,14 @@ public class JuteMojo extends AbstractMojo {
   private boolean skip;
 
   /**
+   * Parameter to be inited by 'jute.test' property and if defined then the
+   * wildcarded value will be filter for executing test(s). Mainly this
+   * parameter for start of test methods separately through command line.
+   */
+  @Parameter(name = "juteTest", property = "jute.test", defaultValue = "")
+  private String juteTest;
+
+  /**
    * Provides extra options for JVM.
    * <pre>
    * &lt;jvmOptions&gt;
@@ -224,6 +222,10 @@ public class JuteMojo extends AbstractMojo {
 
   public String getIn() {
     return this.in;
+  }
+
+  public String getJUteTest() {
+    return this.juteTest;
   }
 
   public boolean isSkip() {
@@ -464,7 +466,7 @@ public class JuteMojo extends AbstractMojo {
     final List<String> collectedTestFilePaths = collectAllPotentialTestClassPaths(getLog(), this.verbose, testFolder, normalizeStringArray(this.includes), normalizeStringArray(this.excludes));
     final Map<TestClassProcessor, List<TestContainer>> extractedTestMethods = new HashMap<TestClassProcessor, List<TestContainer>>();
     try {
-      fillListByTestMethods(baseTestConfig, collectedTestFilePaths, extractedTestMethods);
+      fillListByTestMethods(baseTestConfig, testFolder, collectedTestFilePaths, extractedTestMethods);
     }
     catch (IOException ex) {
       throw new MojoExecutionException("Can't scan test classes", ex);
@@ -479,6 +481,11 @@ public class JuteMojo extends AbstractMojo {
     else {
       getLog().info("Global JVM interpreter path: " + javaInterpreter.getAbsolutePath());
     }
+    
+    if (this.juteTest!=null && !this.juteTest.isEmpty()){
+      getLog().info("NB! Defined juteTest : " + this.juteTest);
+    }
+    
     getLog().info("Test class path: " + testClassPath);
     getLog().info(this.timeout <= 0L ? "No Timeout" : "Timeout is " + this.timeout + " ms");
     getLog().info("Detected " + Utils.calcNumberOfItems(extractedTestMethods) + " potential test method(s)");
@@ -497,8 +504,10 @@ public class JuteMojo extends AbstractMojo {
     }
 
     for (final Map.Entry<TestClassProcessor, List<TestContainer>> e : extractedTestMethods.entrySet()) {
-      if (e.getValue().isEmpty()) continue;
-      
+      if (e.getValue().isEmpty()) {
+        continue;
+      }
+
       getLog().info(e.getKey().getClassName());
       getLog().info(" " + (char) 0x2502);
 
@@ -523,17 +532,11 @@ public class JuteMojo extends AbstractMojo {
     }
 
     final long delay = System.currentTimeMillis() - startTime;
-    getLog().info(String.format("Tests run: %d, Errors: %d, Total time: %s", startedCounter.get(), errorCounter.get(), printTimeDelay(delay)));
+    getLog().info(String.format("Tests run: %d, Errors: %d, Total time: %s", startedCounter.get(), errorCounter.get(), Utils.printTimeDelay(delay)));
 
     if (errorCounter.get() != 0) {
       throw new MojoFailureException("Detected failed tests, see session log");
     }
-  }
-
-  private static String printTimeDelay(final long timeInMilliseconds) {
-    final Duration duration = new Duration(timeInMilliseconds);
-    final Period period = duration.toPeriod().normalizedStandard(PeriodType.time());
-    return TIME_FORMATTER.print(period);
   }
 
   private static String extractTestNameFromLogString(final String text) {
@@ -595,11 +598,11 @@ public class JuteMojo extends AbstractMojo {
           maxWidth = Math.max(termStr.length(), maxWidth);
         }
 
-        getLog().info((char)0x250F+makeStr(maxWidth, (char)0x2501)+(char)0x2513);
-        for(final String s : terminal){
-          getLog().info(" "+s);
+        getLog().info((char) 0x250F + Utils.makeStr(maxWidth, (char) 0x2501) + (char) 0x2513);
+        for (final String s : terminal) {
+          getLog().info(" " + s);
         }
-        getLog().info((char)0x2517+makeStr(maxWidth, (char)0x2501)+(char)0x251B);
+        getLog().info((char) 0x2517 + Utils.makeStr(maxWidth, (char) 0x2501) + (char) 0x251B);
       }
       else {
         getLog().warn("Unexpected log string: " + str);
@@ -607,33 +610,15 @@ public class JuteMojo extends AbstractMojo {
     }
   }
 
-  private static String makeStr(final int len, final char ch) {
-    final StringBuilder result = new StringBuilder(len);
-    for (int i = 0; i < len; i++) {
-      result.append(ch);
-    }
-    return result.toString();
-  }
-
-  private static int getMaxStrLen(final List<String> list) {
-    int len = 0;
-    for (final String s : list) {
-      if (s.length() > len) {
-        len = s.length();
-      }
-    }
-    return len;
-  }
-
   private static List<String> makeTestResultReference(final boolean syncTest, final TestContainer test, final long durationInMilliseconds, final int maxTestNameLength, final TestResult testResult, final String terminal) {
     final List<String> result = new ArrayList<String>();
     final StringBuilder buffer = new StringBuilder();
     buffer.append(syncTest ? SYNC_TEST_RESULT_PREFIX : ASYNC_TEST_RESULT_PREFIX).append(test.getMethodName());
     final int len = maxTestNameLength + 5;
-    buffer.append(makeStr(len - test.getMethodName().length(), '.'));
+    buffer.append(Utils.makeStr(len - test.getMethodName().length(), '.'));
     buffer.append(testResult.name());
     if (testResult != TestResult.SKIPPED && durationInMilliseconds >= 0L) {
-      buffer.append(' ').append('(').append(printTimeDelay(durationInMilliseconds)).append(')');
+      buffer.append(' ').append('(').append(Utils.printTimeDelay(durationInMilliseconds)).append(')');
     }
 
     result.add(buffer.toString());
@@ -754,44 +739,31 @@ public class JuteMojo extends AbstractMojo {
     return this.isSkip() || this.isSkipTests();
   }
 
-  private static List<TestContainer> sortDetectedClassMethodsForNameAndOrder(final List<TestContainer> testMethods) {
-    Collections.sort(testMethods, new Comparator<TestContainer>() {
-      @Override
-      public int compare(final TestContainer o1, final TestContainer o2) {
-        final int order1 = o1.getOrder();
-        final int order2 = o2.getOrder();
+  private void fillListByTestMethods(final TestContainer base, final File testRoot, final List<String> testClassFilePaths, final Map<TestClassProcessor, List<TestContainer>> detectedTestMap) throws IOException {
+    final String testRootPath = FilenameUtils.normalize(testRoot.getAbsolutePath()+File.separatorChar);
+    
+    for (final String classFilePath : testClassFilePaths) {
+      final String normalizedClassFilePath = FilenameUtils.normalize(classFilePath);
+      final String standardJavaClassName = Utils.toStandardJavaClassName(testRootPath, normalizedClassFilePath);
 
-        if (order1 < 0 && order2 < 0) {
-          return 0;
-        }
+      getLog().debug("Process class file : " + normalizedClassFilePath + '[' + standardJavaClassName + ']');
 
-        final String name1 = o1.getMethodName();
-        final String name2 = o2.getMethodName();
-
-        final int result;
-        if (order1 == order2) {
-          result = name1.compareTo(name2);
-        }
-        else {
-          result = Integer.compare(order1, order2);
-        }
-        return result;
+      if (!Utils.checkClassAndMethodForPattern(this.juteTest, standardJavaClassName, "", true)) {
+        getLog().debug("Excluded for 'juteTest' ("+this.juteTest+')');
+        continue;
       }
-    });
-    return testMethods;
-  }
 
-  private void fillListByTestMethods(final TestContainer base, final List<String> testClassFilePaths, final Map<TestClassProcessor, List<TestContainer>> detectedTestMap) throws IOException {
-    for (final String s : testClassFilePaths) {
-      final InputStream classInStream = new FileInputStream(s);
+      final InputStream classInStream = new FileInputStream(normalizedClassFilePath);
       try {
         final ClassReader classReader = new ClassReader(classInStream);
         final List<TestContainer> listOfDetectedMethods = new ArrayList<TestContainer>();
 
-        final TestClassProcessor tcv = new TestClassProcessor(s, base, this.getLog(), this.verbose, listOfDetectedMethods, normalizeStringArray(this.includeTests), normalizeStringArray(this.excludeTests));
+        final TestClassProcessor tcv = new TestClassProcessor(this.juteTest, normalizedClassFilePath, base, this.getLog(), this.verbose, listOfDetectedMethods, normalizeStringArray(this.includeTests), normalizeStringArray(this.excludeTests));
         classReader.accept(tcv, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
 
-        detectedTestMap.put(tcv, sortDetectedClassMethodsForNameAndOrder(listOfDetectedMethods));
+        getLog().debug("Class file "+normalizedClassFilePath+" has "+listOfDetectedMethods.size()+" detected methods");
+        
+        detectedTestMap.put(tcv, Utils.sortDetectedClassMethodsForNameAndOrder(listOfDetectedMethods));
       }
       finally {
         IOUtils.closeQuietly(classInStream);

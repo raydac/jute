@@ -15,10 +15,10 @@
  */
 package com.igormaznitsa.jute.runners;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
-import org.junit.*;
 
 /**
  * Runner to start single test method.
@@ -26,7 +26,7 @@ import org.junit.*;
  * @author Igor Maznitsa (http://www.igormaznitsa.com)
  * @since 1.1.0
  */
-public final class JUteSingleTestMethodRunner {
+public final class JUteSingleTestMethodRunner extends AbstractRunner {
 
   /**
    * Execute method provided as the first argument in format
@@ -35,7 +35,12 @@ public final class JUteSingleTestMethodRunner {
    * @param args command line arguments
    * @throws ClassNotFoundException thrown if test class not found
    */
-  public static void main(final String... args) throws ClassNotFoundException {
+  public static void main(final String... args) {
+    final Class<? extends Annotation> CLASS_JUNIT_AFTER = findAnnotationClass("org.junit.After");
+    final Class<? extends Annotation> CLASS_JUNIT_AFTER_CLASS = findAnnotationClass("org.junit.AfterClass");
+    final Class<? extends Annotation> CLASS_JUNIT_BEFORE = findAnnotationClass("org.junit.Before");
+    final Class<? extends Annotation> CLASS_JUNIT_BEFORE_CLASS = findAnnotationClass("org.junit.BeforeClass");
+
     if (args == null || args.length == 0) {
       System.err.println("No provided test method name");
       System.exit(999);
@@ -48,10 +53,10 @@ public final class JUteSingleTestMethodRunner {
       final Method testMethod = theKlazz.getMethod(classAndMethod[1]);
       final Object theKlazzInstance = theKlazz.newInstance();
 
-      final List<Method> beforeClass = collectBeforeClassMethods(theKlazz);
-      final List<Method> afterClass = collectAfterClassMethods(theKlazz);
-      final List<Method> beforeTest = collectBeforeMethods(theKlazz);
-      final List<Method> afterTest = collectAfterMethods(theKlazz);
+      final List<Method> beforeClass = collectMethodsForFlagAnnotation(theKlazz, CLASS_JUNIT_BEFORE_CLASS);
+      final List<Method> afterClass = collectMethodsForFlagAnnotation(theKlazz, CLASS_JUNIT_AFTER_CLASS);
+      final List<Method> beforeTest = collectMethodsForFlagAnnotation(theKlazz, CLASS_JUNIT_BEFORE);
+      final List<Method> afterTest = collectMethodsForFlagAnnotation(theKlazz, CLASS_JUNIT_AFTER);
 
       boolean error = false;
       if (!executeMethodList(null, beforeClass, true)) {
@@ -105,80 +110,23 @@ public final class JUteSingleTestMethodRunner {
     return noerrors;
   }
 
-  private static List<Method> collectBeforeMethods(final Class klazz) {
-    if (klazz == java.lang.Object.class) {
+  private static List<Method> collectMethodsForFlagAnnotation(final Class klazz, final Class<? extends Annotation> flagAnnotation) {
+    if (flagAnnotation == null || klazz == java.lang.Object.class) {
       return Collections.<Method>emptyList();
     }
     final List<Method> result = new ArrayList<Method>();
-    result.addAll(collectBeforeClassMethods(klazz.getSuperclass()));
-    for (final Method m : klazz.getDeclaredMethods()) {
-      if (Modifier.isAbstract(m.getModifiers())) {
-        continue;
-      }
-      m.setAccessible(true);
-      final Before attr = m.getAnnotation(Before.class);
-      if (attr != null) {
-        result.add(m);
-      }
-    }
-    return result;
-  }
-
-  private static List<Method> collectAfterMethods(final Class klazz) {
-    if (klazz == java.lang.Object.class) {
-      return Collections.<Method>emptyList();
-    }
-    final List<Method> result = new ArrayList<Method>();
-    result.addAll(collectBeforeClassMethods(klazz.getSuperclass()));
-    for (final Method m : klazz.getDeclaredMethods()) {
-      if (Modifier.isAbstract(m.getModifiers())) {
-        continue;
-      }
-      m.setAccessible(true);
-      final After attr = m.getAnnotation(After.class);
-      if (attr != null) {
-        result.add(m);
-      }
-    }
-    return result;
-  }
-
-  private static List<Method> collectBeforeClassMethods(final Class klazz) {
-    if (klazz == java.lang.Object.class) {
-      return Collections.<Method>emptyList();
-    }
-    final List<Method> result = new ArrayList<Method>();
-    result.addAll(collectBeforeClassMethods(klazz.getSuperclass()));
+    result.addAll(collectMethodsForFlagAnnotation(klazz.getSuperclass(), flagAnnotation));
     for (final Method m : klazz.getDeclaredMethods()) {
       if (Modifier.isAbstract(m.getModifiers()) || !Modifier.isStatic(m.getModifiers())) {
         continue;
       }
       m.setAccessible(true);
-      final BeforeClass attr = m.getAnnotation(BeforeClass.class);
+      final Object attr = m.getAnnotation(flagAnnotation);
       if (attr != null) {
         result.add(m);
       }
     }
     return result;
   }
-
-  private static List<Method> collectAfterClassMethods(final Class klazz) {
-    if (klazz == java.lang.Object.class) {
-      return Collections.<Method>emptyList();
-    }
-    final List<Method> result = new ArrayList<Method>();
-    result.addAll(collectBeforeClassMethods(klazz.getSuperclass()));
-    for (final Method m : klazz.getDeclaredMethods()) {
-      if (Modifier.isAbstract(m.getModifiers()) || !Modifier.isStatic(m.getModifiers())) {
-        continue;
-      }
-      m.setAccessible(true);
-      final AfterClass attr = m.getAnnotation(AfterClass.class);
-      if (attr != null) {
-        result.add(m);
-      }
-    }
-    return result;
-  }
-
+  
 }
