@@ -701,7 +701,7 @@ public class JuteMojo extends AbstractMojo {
             }
 
             if (logStrings != null) {
-              final boolean printConsoleLog = result!=TestResult.OK || container.isEnforceOut();
+              final boolean printConsoleLog = result!=TestResult.OK || container.isPrintConsole();
               synchronized (logStrings) {
                 logStrings.addAll(makeTestResultReference(counterDown == null, container, endTime - startTime, maxTestNameLength, result, (printConsoleLog ? container.getLastTerminalOut() : null)));
               }

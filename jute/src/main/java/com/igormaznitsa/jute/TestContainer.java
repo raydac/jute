@@ -38,7 +38,7 @@ public final class TestContainer extends AnnotationVisitor {
   private String jvm = "";
   private String in = "";
   private int order = -1;
-  private boolean enforceOut = false;
+  private boolean printConsole = false;
   private boolean skip = false;
   private long timeout = 0L;
   private final List<String> jvmOpts = new ArrayList<String>();
@@ -55,7 +55,7 @@ public final class TestContainer extends AnnotationVisitor {
   
   private volatile String lastTerminalOut;
   
-  public TestContainer(final String classFilePath, final String className, final String testName, final String jvm, final String[] jvmOpts, final String in, final int order, final boolean enforceOut, final boolean skip, final long timeout) {
+  public TestContainer(final String classFilePath, final String className, final String testName, final String jvm, final String[] jvmOpts, final String in, final int order, final boolean enforcePrintConsole, final boolean skip, final long timeout) {
     super(Opcodes.ASM5);
     this.classFilePath = classFilePath;
     this.className = className;
@@ -63,7 +63,7 @@ public final class TestContainer extends AnnotationVisitor {
     this.jvm = jvm;
     this.in = in;
     this.order = order;
-    this.enforceOut = enforceOut;
+    this.printConsole = enforcePrintConsole;
     this.skip = skip;
     this.timeout = timeout;
     if (jvmOpts != null) {
@@ -83,7 +83,7 @@ public final class TestContainer extends AnnotationVisitor {
       this.jvm = base.jvm;
       this.in = base.in;
       this.order = base.order;
-      this.enforceOut = base.enforceOut;
+      this.printConsole = base.printConsole;
       this.skip = base.skip;
       this.timeout = base.timeout;
       this.jvmOpts.addAll(base.jvmOpts);
@@ -125,8 +125,8 @@ public final class TestContainer extends AnnotationVisitor {
     return this.order;
   }
 
-  public boolean isEnforceOut() {
-    return this.enforceOut;
+  public boolean isPrintConsole() {
+    return this.printConsole;
   }
 
   public boolean isSkip() {
