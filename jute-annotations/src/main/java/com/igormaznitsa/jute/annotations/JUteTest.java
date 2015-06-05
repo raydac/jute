@@ -18,8 +18,8 @@ package com.igormaznitsa.jute.annotations;
 import java.lang.annotation.*;
 
 /**
- * Annotation shows to JUte that method or all methods of the class should be in
- * scope of JUte.
+ * Flag annotation for JUTe tests. Can be placed as for test method as for whole
+ * class.
  *
  * @since 1.1.0
  */
@@ -29,9 +29,10 @@ import java.lang.annotation.*;
 public @interface JUteTest {
 
   /**
-   * Java interpreter for the test. Can be path or command.
+   * Java interpreter to be used for the test execution. Can be a file path or a
+   * command.
    *
-   * @return path or command to JVM interpreter
+   * @return either full path to JVM interpreter or a command
    */
   String jvm() default "";
 
@@ -50,18 +51,19 @@ public @interface JUteTest {
   String in() default "";
 
   /**
-   * Order of test processing. Test methods with the same non-negative order will be started in parallel.
+   * Order of test processing. Test methods with the same non-negative order
+   * will be started in parallel.
    *
    * @return order number of the test
    */
   int order() default -1;
 
   /**
-   * Enforce output of process consoles into log.
+   * Enforce print the test console output even if there was not any error.
    *
    * @return flag to print test console output into log
    */
-  boolean enforceOut() default false;
+  boolean printConsole() default false;
 
   /**
    * Skip the test.
@@ -73,8 +75,8 @@ public @interface JUteTest {
   /**
    * Timeout for the test process.
    *
-   * @return timeout in milliseconds for started process, zero or negative
-   * number if no timeout
+   * @return timeout in milliseconds for started process, if it is either zero or
+   * non-positive value then ignored.
    */
   long timeout() default 0L;
 }
