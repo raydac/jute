@@ -50,13 +50,9 @@ public @interface JUteTest {
   String in() default "";
 
   /**
-   * Order of tests. Tests with similar order parameters will be started in
-   * parallel.
+   * Order of test processing. Test methods with the same non-negative order will be started in parallel.
    *
-   * @return negative number shows that test doesn't need any ordering, zero
-   * shows that tests with the same such order should be sorted in alphabetic
-   * order (case sensitive), positive number shows that tests with the same
-   * order should be started in parallel.
+   * @return order number of the test
    */
   int order() default -1;
 
