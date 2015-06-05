@@ -6,6 +6,7 @@
 - minor improvements in logging
 - added support of 'skipTests' and 'maven.test.skip' properties
 - added support of 'jute.test' property
+- removed hard links to JUnit, now JUte can process tests and in projects without JUnit as dependency
 
 1.0.0
 - initial version
