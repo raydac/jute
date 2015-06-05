@@ -16,8 +16,7 @@
 package com.igormaznitsa.jute.runners;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -52,10 +51,10 @@ public final class JUteSingleTestMethodRunner extends AbstractRunner {
       final Method testMethod = theKlazz.getMethod(classAndMethod[1]);
       final Object theKlazzInstance = theKlazz.newInstance();
 
-      final List<Method> beforeClass = collectMethodsForFlagAnnotation(theKlazz, CLASS_JUNIT_BEFORE_CLASS);
-      final List<Method> afterClass = collectMethodsForFlagAnnotation(theKlazz, CLASS_JUNIT_AFTER_CLASS);
-      final List<Method> beforeTest = collectMethodsForFlagAnnotation(theKlazz, CLASS_JUNIT_BEFORE);
-      final List<Method> afterTest = collectMethodsForFlagAnnotation(theKlazz, CLASS_JUNIT_AFTER);
+      final List<Method> beforeClass = collectMethodsForFlagAnnotation(theKlazz, true, CLASS_JUNIT_BEFORE_CLASS);
+      final List<Method> afterClass = collectMethodsForFlagAnnotation(theKlazz, true, CLASS_JUNIT_AFTER_CLASS);
+      final List<Method> beforeTest = collectMethodsForFlagAnnotation(theKlazz, false, CLASS_JUNIT_BEFORE);
+      final List<Method> afterTest = collectMethodsForFlagAnnotation(theKlazz, false, CLASS_JUNIT_AFTER);
 
       boolean error = false;
       if (!executeMethodList(null, beforeClass, true)) {
@@ -87,6 +86,13 @@ public final class JUteSingleTestMethodRunner extends AbstractRunner {
       System.exit(0);
     }
     catch (Throwable thr) {
+      if (thr instanceof InvocationTargetException) {
+        if (thr.getCause() != null) {
+          thr.getCause().printStackTrace();
+          System.exit(1);
+        }
+      }
+
       thr.printStackTrace(System.err);
       System.exit(1);
     }
@@ -109,14 +115,17 @@ public final class JUteSingleTestMethodRunner extends AbstractRunner {
     return noerrors;
   }
 
-  private static List<Method> collectMethodsForFlagAnnotation(final Class klazz, final Class<? extends Annotation> flagAnnotation) {
+  private static List<Method> collectMethodsForFlagAnnotation(final Class klazz, final boolean onlyStatic, final Class<? extends Annotation> flagAnnotation) {
     if (flagAnnotation == null || klazz == java.lang.Object.class) {
       return Collections.<Method>emptyList();
     }
     final List<Method> result = new ArrayList<Method>();
-    result.addAll(collectMethodsForFlagAnnotation(klazz.getSuperclass(), flagAnnotation));
+    result.addAll(collectMethodsForFlagAnnotation(klazz.getSuperclass(), onlyStatic, flagAnnotation));
     for (final Method m : klazz.getDeclaredMethods()) {
-      if (Modifier.isAbstract(m.getModifiers()) || !Modifier.isStatic(m.getModifiers())) {
+      if (onlyStatic && !Modifier.isStatic(m.getModifiers())) {
+        continue;
+      }
+      if (Modifier.isAbstract(m.getModifiers())) {
         continue;
       }
       m.setAccessible(true);
@@ -127,5 +136,5 @@ public final class JUteSingleTestMethodRunner extends AbstractRunner {
     }
     return result;
   }
-  
+
 }

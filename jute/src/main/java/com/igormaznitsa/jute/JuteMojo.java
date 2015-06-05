@@ -558,7 +558,7 @@ public class JuteMojo extends AbstractMojo {
     int testIndex = 0;
     int line = 0;
 
-    while (testIndex < numberOfTestsInLog) {
+    while (line < result.size()) {
       final boolean lastTest = testIndex == numberOfTestsInLog - 1;
       final String str = result.get(line++);
 
@@ -692,8 +692,9 @@ public class JuteMojo extends AbstractMojo {
             }
 
             if (logStrings != null) {
+              final boolean printConsoleLog = result!=TestResult.OK || container.isEnforceOut();
               synchronized (logStrings) {
-                logStrings.addAll(makeTestResultReference(counterDown == null, container, endTime - startTime, maxTestNameLength, result, (container.isEnforceOut() || result != TestResult.OK) ? container.getLastTerminalOut() : null));
+                logStrings.addAll(makeTestResultReference(counterDown == null, container, endTime - startTime, maxTestNameLength, result, (printConsoleLog ? container.getLastTerminalOut() : null)));
               }
             }
           }
