@@ -173,6 +173,19 @@ public class IntegrationTest extends AbstractJUteITTest {
   }
 
   @Test
+  public void testJUteMarkedTests_BeforeAfter() throws Exception {
+    final Verifier verifier = verifyWithExpectedError("juteMarked_BeforeAfter", false);
+
+    final List<String> juteSection = extractJuteSection(verifier);
+    final List<String> junitSection = extractJUnitSection(verifier);
+    
+    assertPattern("Tests run: 0,",junitSection);
+    assertPatternOrder(juteSection, "AbsBeforeClass", "BeforeClass", "AbsBeforeTest", "BeforeTest", "TEST", "AbsAfterTest", "AfterTest", "AbsAfterClass", "AfterClass");
+    assertPatternOrder(juteSection, "AbsBeforeClass", "BeforeClass", "AbsBeforeTest", "BeforeTest", "FAILEDTEST", "AbsAfterTest", "AfterTest", "AbsAfterClass", "AfterClass");
+    assertPattern("FAIL_TEXT",juteSection);
+  }
+
+  @Test
   public void testExcludes() throws Exception {
     final Verifier verifier = verify("excludedFileCfg", false);
 
