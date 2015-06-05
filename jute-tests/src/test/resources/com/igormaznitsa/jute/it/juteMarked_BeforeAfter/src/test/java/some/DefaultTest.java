@@ -31,12 +31,12 @@ public class DefaultTest extends AbstractTest{
     System.out.println("TESTIGNORED");
   }
 
-  @JUteTest(enforceOut = true)
+  @JUteTest(printConsole = true)
   public void test() {
     System.out.println("TEST");
   }
 
-  @JUteTest(enforceOut=true)
+  @JUteTest(printConsole=true)
   public void testFailed() {
     System.out.println("FAILEDTEST");
     fail("FAIL_TEXT");

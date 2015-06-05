@@ -37,6 +37,23 @@ public class IntegrationTest extends AbstractJUteITTest {
   }
 
   @Test
+  public void testCustomJavaInterpreter() throws Exception {
+    final Verifier verifier = verify("customJavaInterpreter", false);
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+
+    assertEmpty(junitSection);
+    
+    assertNoPattern("test2\\.+", juteSection);
+    assertPattern("test1\\.+OK", juteSection);
+    assertNoPattern("TestTwo",juteSection);
+    assertPattern("TestOne",juteSection);
+    assertPattern("Could not execute \\[_illegalJava", juteSection);
+    assertPattern("2 potential test",juteSection);
+  }
+
+  @Test
   public void testJUteTestParameter() throws Exception {
     final Verifier verifier = verify("juteTestParameter", false, Collections.singletonMap("jute.test", "*.DefaultTestSec#testSecG"));
 
