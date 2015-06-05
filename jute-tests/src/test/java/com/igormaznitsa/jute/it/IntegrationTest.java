@@ -101,7 +101,7 @@ public class IntegrationTest extends AbstractJUteITTest {
 
     assertEmpty(junitSection);
     assertPattern("\\u2504testB\\.+TIMEOUT", juteSection);
-    assertPatternOrder(juteSection, "Output","TestB","Error");
+    assertPatternOrder(juteSection, "Output","TestB");
     assertPattern("\\u2504testA\\.+OK", juteSection);
     assertPattern("\\u2504testC\\.+OK", juteSection);
   }

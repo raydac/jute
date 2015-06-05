@@ -6,7 +6,7 @@ import com.igormaznitsa.jute.annotations.*;
 
 public class DefaultTest {
 
-  @JUteTest(order = 0)
+  @JUteTest
   public void testB() throws Exception {
     System.out.println("TestB");
   }
@@ -21,7 +21,7 @@ public class DefaultTest {
     System.out.println("TestD");
   }
 
-  @JUteTest(order = 0)
+  @JUteTest
   public void testA() throws Exception {
     System.out.println("TestA");
   }
