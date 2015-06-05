@@ -597,10 +597,19 @@ public class JuteMojo extends AbstractMojo {
           terminal.add(termStr);
           maxWidth = Math.max(termStr.length(), maxWidth);
         }
-
+        maxWidth += 10;
+        
         getLog().info((char) 0x250F + Utils.makeStr(maxWidth, (char) 0x2501) + (char) 0x2513);
+        boolean error = false;
         for (final String s : terminal) {
-          getLog().info(" " + s);
+          if (error){
+            getLog().error(" " + s);
+          }else{
+            getLog().info(" " + s);
+            if (s.contains((char) 0x2563 + "Error" + (char) 0x2560)){
+              error = true;
+            }
+          }
         }
         getLog().info((char) 0x2517 + Utils.makeStr(maxWidth, (char) 0x2501) + (char) 0x251B);
       }
@@ -668,7 +677,7 @@ public class JuteMojo extends AbstractMojo {
     }
     final CountDownLatch counterDown;
 
-    if (detectedOrder > 0 && toExecute.size() > 1) {
+    if (detectedOrder >= 0 && toExecute.size() > 1) {
       counterDown = new CountDownLatch(toExecute.size());
     }
     else {

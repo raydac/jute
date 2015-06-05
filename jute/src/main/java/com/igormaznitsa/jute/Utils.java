@@ -111,12 +111,8 @@ public abstract class Utils {
     Collections.sort(testMethods, new Comparator<TestContainer>() {
       @Override
       public int compare(final TestContainer o1, final TestContainer o2) {
-        final int order1 = o1.getOrder();
-        final int order2 = o2.getOrder();
-
-        if (order1 < 0 && order2 < 0) {
-          return 0;
-        }
+        final int order1 = o1.getOrder() < 0 ? -1 : o1.getOrder();
+        final int order2 = o2.getOrder() < 0 ? -1 : o2.getOrder();
 
         final String name1 = o1.getMethodName();
         final String name2 = o2.getMethodName();
