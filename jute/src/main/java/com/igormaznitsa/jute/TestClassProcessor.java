@@ -29,21 +29,21 @@ final class TestClassProcessor extends ClassVisitor {
   private String className;
   private boolean classJUnitIgnoreFlag;
   private final Log logger;
-  private final boolean verbose;
+  private final boolean onlyAnnotated;
   private final TestContainer baseParameters;
   private TestContainer clazzParameters;
   private boolean inappropriateClass;
-
+  
   private final String juteTestParameter;
   
-  TestClassProcessor(final String juteTestParameter, final String classFilePath, final TestContainer baseParameters, final Log logger, final boolean verbose, final List<TestContainer> resultList, final String[] includedTestPatterns, final String[] excludedTestPatterns) {
+  TestClassProcessor(final boolean onlyAnnotated, final String juteTestParameter, final String classFilePath, final TestContainer baseParameters, final Log logger, final List<TestContainer> resultList, final String[] includedTestPatterns, final String[] excludedTestPatterns) {
     super(Opcodes.ASM5);
+    this.onlyAnnotated = onlyAnnotated;
     this.juteTestParameter = juteTestParameter;
     this.detectedTestMethodList = resultList;
     this.includedTests = includedTestPatterns;
     this.excludedTests = excludedTestPatterns;
     this.logger = logger;
-    this.verbose = verbose;
     this.baseParameters = baseParameters;
     this.classFilePath = classFilePath;
   }
@@ -88,7 +88,7 @@ final class TestClassProcessor extends ClassVisitor {
       return null;
     }
 
-    if (((access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE | Opcodes.ACC_STATIC)) != 0) || this.classJUnitIgnoreFlag || !desc.equals("()V") || name.startsWith("<")) {
+    if (((access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE | Opcodes.ACC_STATIC)) != 0) || (this.classJUnitIgnoreFlag && !this.onlyAnnotated) || !desc.equals("()V") || name.startsWith("<")) {
       return null;
     }
     final boolean foundInExcludedList = isTestIncluded(desc);
@@ -190,7 +190,7 @@ final class TestClassProcessor extends ClassVisitor {
   
   @Override
   public int hashCode(){
-    return this.className.hashCode();
+    return this.classFilePath.hashCode();
   }
   
   @Override
@@ -198,7 +198,7 @@ final class TestClassProcessor extends ClassVisitor {
     if (obj == null) return false;
     if (obj == this) return true;
     if (obj instanceof TestClassProcessor){
-       return this.className.equals(((TestClassProcessor)obj).className);
+       return this.classFilePath.equals(((TestClassProcessor)obj).classFilePath);
     }
     return false;
   }

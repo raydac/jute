@@ -30,8 +30,10 @@ import org.apache.commons.lang.SystemUtils;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.*;
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugins.annotations.*;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.objectweb.asm.*;
 import org.springframework.util.AntPathMatcher;
@@ -119,9 +121,9 @@ public class JuteMojo extends AbstractMojo {
   private String[] excludes;
 
   /**
-   * Path to JRE folder to be used for tests, also path to executable file can
-   * be provided. By default the Maven JRE will be used. Value must contain path
-   * to JRE folder or to Java executable file, don't provide path to commands.
+   * Path to java interpreter or JRE folder or even command to be used to start
+   * tests. By default will be used Java interpreter detected through the
+   * 'java.home' system property
    */
   @Parameter(name = "java")
   private String java;
@@ -175,28 +177,29 @@ public class JuteMojo extends AbstractMojo {
   private boolean enforcePrintConsole;
 
   /**
-   * Start only tests marked by @com.igormaznitsa,jute.annotations.JUTeTest
-   * annotation and ignore JUnit tests.
+   * Start only tests marked by @com.igormaznitsa,jute.annotations.JUTeTest,
+   * both @Test and @Ignore JUnit annotations will be ignored by JUte.
    */
   @Parameter(name = "onlyAnnotated", defaultValue = "false")
   private boolean onlyAnnotated;
 
   /**
-   * Parameter allows to skip tests.
+   * Parameter allows to skip tests. It provides value of 'skipTests' property.
    */
   @Parameter(name = "skipTests", property = "skipTests", defaultValue = "false")
   private boolean skipTests;
 
   /**
-   * Global parameter to skip all tests entirely.
+   * Global parameter to skip all tests entirely. It provides value of
+   * 'maven.test.skip' property.
    */
   @Parameter(name = "skip", property = "maven.test.skip", defaultValue = "false")
   private boolean skip;
 
   /**
-   * Parameter to be inited by 'jute.test' property and if defined then the
-   * wildcarded value will be filter for executing test(s). Mainly this
-   * parameter for start of test methods separately through command line.
+   * Parameter provides value of the 'jute.test' property and if defined then
+   * the wildcarded value will be filtering test(s). Mainly this parameter for
+   * start test methods separately through CLI. It works similar to 'test' property for Surefire.
    */
   @Parameter(name = "juteTest", property = "jute.test", defaultValue = "")
   private String juteTest;
@@ -398,17 +401,28 @@ public class JuteMojo extends AbstractMojo {
     return result;
   }
 
+  private static String getPathInsideJDK() {
+    return SystemUtils.IS_OS_WINDOWS ? "\\bin\\java.exe" : "/bin/java";
+  }
+
   private static File getFilePathToJVMInterpreter(final String jvmInterpreter) {
     File result;
     if (jvmInterpreter == null) {
-      final String name = SystemUtils.IS_OS_WINDOWS ? "\\bin\\java.exe" : "/bin/java";
-      result = new File(new File(System.getProperty("java.home")), name);
+      result = new File(new File(System.getProperty("java.home")), getPathInsideJDK());
     }
     else {
       try {
         result = new File(jvmInterpreter);
         if (!result.isFile()) {
-          result = null;
+          if (result.isDirectory()) {
+            result = new File(result, getPathInsideJDK());
+            if (!result.isFile()) {
+              result = null;
+            }
+          }
+          else {
+            result = null;
+          }
         }
       }
       catch (Exception ex) {
@@ -476,16 +490,16 @@ public class JuteMojo extends AbstractMojo {
 
     getLog().info("Global Java options: " + (this.jvmOptions == null ? "<not provided>" : Arrays.toString(this.jvmOptions)));
     if (javaInterpreter == null) {
-      getLog().info("JVM interpreter command: " + this.java);
+      getLog().info("JVM interpreter as command: " + this.java);
     }
     else {
-      getLog().info("Global JVM interpreter path: " + javaInterpreter.getAbsolutePath());
+      getLog().info("Global JVM interpreter as path: " + javaInterpreter.getAbsolutePath());
     }
-    
-    if (this.juteTest!=null && !this.juteTest.isEmpty()){
+
+    if (this.juteTest != null && !this.juteTest.isEmpty()) {
       getLog().info("NB! Defined juteTest : " + this.juteTest);
     }
-    
+
     getLog().info("Test class path: " + testClassPath);
     getLog().info(this.timeout <= 0L ? "No Timeout" : "Timeout is " + this.timeout + " ms");
     getLog().info("Detected " + Utils.calcNumberOfItems(extractedTestMethods) + " potential test method(s)");
@@ -598,15 +612,16 @@ public class JuteMojo extends AbstractMojo {
           maxWidth = Math.max(termStr.length(), maxWidth);
         }
         maxWidth += 10;
-        
+
         getLog().info((char) 0x250F + Utils.makeStr(maxWidth, (char) 0x2501) + (char) 0x2513);
         boolean error = false;
         for (final String s : terminal) {
-          if (error){
+          if (error) {
             getLog().error(" " + s);
-          }else{
+          }
+          else {
             getLog().info(" " + s);
-            if (s.contains((char) 0x2563 + "Error" + (char) 0x2560)){
+            if (s.contains((char) 0x2563 + "Error" + (char) 0x2560)) {
               error = true;
             }
           }
@@ -701,7 +716,7 @@ public class JuteMojo extends AbstractMojo {
             }
 
             if (logStrings != null) {
-              final boolean printConsoleLog = result!=TestResult.OK || container.isPrintConsole();
+              final boolean printConsoleLog = result != TestResult.OK || container.isPrintConsole();
               synchronized (logStrings) {
                 logStrings.addAll(makeTestResultReference(counterDown == null, container, endTime - startTime, maxTestNameLength, result, (printConsoleLog ? container.getLastTerminalOut() : null)));
               }
@@ -750,8 +765,8 @@ public class JuteMojo extends AbstractMojo {
   }
 
   private void fillListByTestMethods(final TestContainer base, final File testRoot, final List<String> testClassFilePaths, final Map<TestClassProcessor, List<TestContainer>> detectedTestMap) throws IOException {
-    final String testRootPath = FilenameUtils.normalize(testRoot.getAbsolutePath()+File.separatorChar);
-    
+    final String testRootPath = FilenameUtils.normalize(testRoot.getAbsolutePath() + File.separatorChar);
+
     for (final String classFilePath : testClassFilePaths) {
       final String normalizedClassFilePath = FilenameUtils.normalize(classFilePath);
       final String standardJavaClassName = Utils.toStandardJavaClassName(testRootPath, normalizedClassFilePath);
@@ -759,7 +774,7 @@ public class JuteMojo extends AbstractMojo {
       getLog().debug("Process class file : " + normalizedClassFilePath + '[' + standardJavaClassName + ']');
 
       if (!Utils.checkClassAndMethodForPattern(this.juteTest, standardJavaClassName, "", true)) {
-        getLog().debug("Excluded for 'juteTest' ("+this.juteTest+')');
+        getLog().debug("Excluded for 'juteTest' (" + this.juteTest + ')');
         continue;
       }
 
@@ -768,11 +783,11 @@ public class JuteMojo extends AbstractMojo {
         final ClassReader classReader = new ClassReader(classInStream);
         final List<TestContainer> listOfDetectedMethods = new ArrayList<TestContainer>();
 
-        final TestClassProcessor tcv = new TestClassProcessor(this.juteTest, normalizedClassFilePath, base, this.getLog(), this.verbose, listOfDetectedMethods, normalizeStringArray(this.includeTests), normalizeStringArray(this.excludeTests));
+        final TestClassProcessor tcv = new TestClassProcessor(this.onlyAnnotated, this.juteTest, normalizedClassFilePath, base, this.getLog(), listOfDetectedMethods, normalizeStringArray(this.includeTests), normalizeStringArray(this.excludeTests));
         classReader.accept(tcv, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
 
-        getLog().debug("Class file "+normalizedClassFilePath+" has "+listOfDetectedMethods.size()+" detected methods");
-        
+        getLog().debug("Class file " + normalizedClassFilePath + " has " + listOfDetectedMethods.size() + " detected methods");
+
         detectedTestMap.put(tcv, Utils.sortDetectedClassMethodsForNameAndOrder(listOfDetectedMethods));
       }
       finally {

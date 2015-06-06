@@ -30,14 +30,14 @@ public @interface JUteTest {
 
   /**
    * Java interpreter to be used for the test execution. Can be a file path or a
-   * command.
+   * command. For instance 'java' or '/usr/bin/java'
    *
    * @return either full path to JVM interpreter or a command
    */
   String jvm() default "";
 
   /**
-   * Array contains options for JVM to be used for test start.
+   * Array contains options for JVM to be used for test start. For instance '-Dsome.property=HelloWorld'
    *
    * @return array of jvm options as strings
    */
@@ -59,7 +59,7 @@ public @interface JUteTest {
   int order() default -1;
 
   /**
-   * Enforce print the test console output even if there was not any error.
+   * Enforce print the test console output even if there was not any error. By default console logs are not printed into log if there was not any error.
    *
    * @return flag to print test console output into log
    */

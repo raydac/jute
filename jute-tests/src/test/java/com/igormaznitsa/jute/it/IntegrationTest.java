@@ -22,6 +22,36 @@ import static org.junit.Assert.*;
 
 public class IntegrationTest extends AbstractJUteITTest {
   @Test
+  public void testAnnotatedInJUnitIgnored() throws Exception {
+    final Verifier verifier = verify("annotatedInJUnitIgnored", false);
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+  
+    assertPattern("Skipped: 1",junitSection);
+    assertNoPattern("TestOne",junitSection);
+    assertNoPattern("TestTwo",junitSection);
+    assertNoPattern("ERROR", junitSection);
+    
+    assertPattern("testOne\\.+OK",juteSection);
+    assertPattern("TestOne",juteSection);
+    assertPattern("TestTwo",juteSection);
+    assertNoPattern("ERROR", juteSection);
+  }
+
+  @Test
+  public void testPropertiesAndEnv() throws Exception {
+    final Verifier verifier = verify("propertiesAndEnv", false);
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+    
+    assertPattern("Tests run: 0",junitSection);
+    assertPattern("testProperties\\.+OK", juteSection);
+    assertPatternOrder(juteSection,"SomeGlobalEnvProperty","SomeGlobalJVMProperty","SomeGlobalOptProperty");
+  }
+
+  @Test
   public void testNoTests() throws Exception {
     final Verifier verifier = verify("noTests", false);
 

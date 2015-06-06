@@ -296,7 +296,7 @@ public final class TestContainer extends AnnotationVisitor {
     final String errStr = new String(err.toByteArray(), Charset.defaultCharset());
     
     record.append((char)0x2562+"Output"+(char) 0x255F).append(Utils.lineSeparator).append(outStr).append(Utils.lineSeparator);
-    if (errStr!=null && !errStr.isEmpty()){
+    if (!errStr.isEmpty()){
       record.append((char) 0x2563 +"Error"+ (char) 0x2560).append(Utils.lineSeparator).append(errStr);
     }
     return record.toString();

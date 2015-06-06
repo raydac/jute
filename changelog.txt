@@ -1,12 +1,13 @@
 1.1.0
 - reworked project structure
-- added @JUteTest annotation
-- added support of tests non marked by @Test annotation
-- added support of parallel execution of tests
-- minor improvements in logging
-- added support of 'skipTests' and 'maven.test.skip' properties
-- added support of 'jute.test' property
-- removed hard links to JUnit, now JUte can process tests and in projects without JUnit as dependency
+- added @JUteTest annotation to mark tests to be started with JUte (provided by the jute-annotations artefact)
+- improvements in test result logging
+- all tests every time alphabetically sorted in bounds of their order
+- added support of parallel execution for tests with the same order value
+- tests marked by @JUteTest support JUnit test life cycle - @BeforeClass..@Before..@After..@AfterClass
+- added support of 'skipTests' and 'maven.test.skip' properties, like in maven-surefire
+- added support of 'jute.test' property to be used from command line, like 'test' in maven-surefire
+- removed hard dependency to JUnit, now JUte can process tests and without JUnit as dependency
 
 1.0.0
 - initial version
