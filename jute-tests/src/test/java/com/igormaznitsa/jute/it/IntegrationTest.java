@@ -22,6 +22,17 @@ import static org.junit.Assert.*;
 
 public class IntegrationTest extends AbstractJUteITTest {
   @Test
+  public void testSkipAllTests() throws Exception {
+    final Verifier verifier = verify("skipAllTests", false);
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+    
+    assertPattern("Tests are skipped.", junitSection);
+    assertPattern("Tests are skipped.", juteSection);
+  }
+  
+  @Test
   public void testAnnotatedInJUnitIgnored() throws Exception {
     final Verifier verifier = verify("annotatedInJUnitIgnored", false);
 
