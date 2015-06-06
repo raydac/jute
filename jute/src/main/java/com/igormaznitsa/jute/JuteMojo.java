@@ -177,8 +177,9 @@ public class JuteMojo extends AbstractMojo {
   private boolean enforcePrintConsole;
 
   /**
-   * Start only tests marked by @com.igormaznitsa,jute.annotations.JUTeTest,
-   * both @Test and @Ignore JUnit annotations will be ignored by JUte.
+   * Start only tests marked by @com.igormaznitsa,jute.annotations.JUTeTest
+   * (provided by jute-annotations artifact), both @Test and @Ignore JUnit
+   * annotations will be ignored by JUte.
    */
   @Parameter(name = "onlyAnnotated", defaultValue = "false")
   private boolean onlyAnnotated;
@@ -199,7 +200,8 @@ public class JuteMojo extends AbstractMojo {
   /**
    * Parameter provides value of the 'jute.test' property and if defined then
    * the wildcarded value will be filtering test(s). Mainly this parameter for
-   * start test methods separately through CLI. It works similar to 'test' property for Surefire.
+   * start test methods separately through CLI. It works similar to 'test'
+   * property for Surefire.
    */
   @Parameter(name = "juteTest", property = "jute.test", defaultValue = "")
   private String juteTest;
@@ -381,7 +383,7 @@ public class JuteMojo extends AbstractMojo {
   }
 
   private static String[] normalizeStringArray(final String[] array) {
-    String[] result = null;
+    String[] result;
     if (array == null) {
       result = EMPTY_STR;
     }
