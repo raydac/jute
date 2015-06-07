@@ -1,5 +1,21 @@
 # What is it?
-It is a small specific Maven plugin (of course it is relative small one because it of course will download and save on your machine a half-of-internet as dependencies) for specific testing tasks.
+It is a small specific Maven plugin (of course it is relative small one because it of course will download and save on your machine a half-of-internet as dependencies) for specific testing tasks. Since 1.1.0 it allows annotations to mark tests, for annotations use __jute-annotations__ artifact.
+![Use case diagram](https://raw.githubusercontent.com/raydac/jute/master/docs/jute_usecases.png)
+
+# Changelog
+1.1.0
+- reworked project structure
+- added @JUteTest annotation to mark tests to be started with JUte (provided by the jute-annotations artefact)
+- improvements in test result logging
+- all tests every time alphabetically sorted in bounds of their order
+- added support of parallel execution for tests with the same order value
+- tests marked by @JUteTest support JUnit test life cycle - @BeforeClass @Before @After @AfterClass
+- added support of 'skipTests' and 'maven.test.skip' properties, like in maven-surefire
+- added support of 'jute.test' property to be used from command line, like 'test' in maven-surefire
+- removed hard dependency to JUnit, now JUte can process tests and without JUnit as dependency
+
+1.0.0
+- initial version
 
 # What is the specific tasks?
 Let's imagine that we want to write JUnit tests for some code which has so bizzare structure and architecture that it is very expensive to dig it and avoid influence of one test to another, may be it is a legacy code or just a system with very very complex behaviour. All your tests work separately but they are red in bunch execution.   
@@ -15,7 +31,7 @@ It is very easy, the plugin has been published in the Maven Central and you can 
     <plugin>
       <groupId>com.igormaznitsa</groupId>
       <artifactId>jute</artifactId>
-      <version>1.0.0</version>
+      <version>1.1.0</version>
       <executions>
         <execution>
           <goals>
@@ -30,6 +46,42 @@ It is very easy, the plugin has been published in the Maven Central and you can 
 ```
 after that JUte will be executing every test phase of your project during __test__ phase.
 
+# How to use JUte annotations?
+JUte annotations provided by __jute-annotations__ artifact and you can just add it as dependency
+```
+<dependencies>
+  <dependency>
+    <groupId>com.igormaznitsa</groupId>
+    <artifactId>jute-annotations</artifactId>
+    <version>1.1.0</version>
+    <scope>test</scope>
+  </dependency>
+</dependencies>
+```
+Tests to be processed by JUte should be marked by `@com.igormaznitsa.jute.annotations.JUteTest` but keep in memory that by default JUte processes and JUnit tests so if you want work only with @JUteTest marked tests then add `<onlyAnnotated>true</onlyAnnotated>` into JUte plugin configuration. If you have similar parameters in jute plugin configuration, then they will be overrided by parameters defined in the annotation.
+```java
+@JUteTest(order=12,jvm="java",jvmOpts={"-Xss=10m","-Xmx256m"},timeout=3000,printConsole=true)
+public void testSome() throws Exception {
+...
+}
+```
+#Test order
+Since 1.1.0 version, all test methods are sorted in ABC (case-sensetive) order, if you provide __order__ parameter of annotation then tests with the same order value will be started in parallel.  
+```java
+@JUteTest
+public void testA() throws Exception {
+...
+}
+@JUteTest(order=2)
+public void testB() throws Exception {
+...
+}
+@JUteTest(order=2)
+public void testC() throws Exception {
+...
+}
+```
+In the example, after test A execution, tests B and C will be started in parallel and process will be continued only when both tests are completed.
 # Hey! I want to use it only for several classes!
 No problems, just define name of your class in __includes__ section of the plugin configuration
 ```
@@ -39,7 +91,7 @@ No problems, just define name of your class in __includes__ section of the plugi
     <plugin>
       <groupId>com.igormaznitsa</groupId>
       <artifactId>jute</artifactId>
-      <version>1.0.0</version>
+      <version>1.1.0</version>
       <executions>
         <execution>
           <goals>
@@ -68,7 +120,7 @@ Ok! In the case you just should define names or a mask for your test method name
     <plugin>
       <groupId>com.igormaznitsa</groupId>
       <artifactId>jute</artifactId>
-      <version>1.0.0</version>
+      <version>1.1.0</version>
       <executions>
         <execution>
           <goals>
