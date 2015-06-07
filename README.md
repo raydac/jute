@@ -3,6 +3,9 @@ It is a small specific Maven plugin (of course it is relative small one because 
 ![Use case diagram](https://raw.githubusercontent.com/raydac/jute/master/docs/jute_usecases.png)
 
 # Changelog
+1.1.1
+- reworked test class path generating mechanism, removed usage of jcabi-aether because sometime it throws NPE with complex settings.xml
+
 1.1.0
 - reworked project structure
 - added @JUteTest annotation to mark tests to be started with JUte (provided by the jute-annotations artefact)
@@ -32,7 +35,7 @@ It is very easy, the plugin has been published in the Maven Central and you can 
     <plugin>
       <groupId>com.igormaznitsa</groupId>
       <artifactId>jute</artifactId>
-      <version>1.1.0</version>
+      <version>1.1.1</version>
       <executions>
         <execution>
           <goals>
@@ -54,7 +57,7 @@ JUte annotations provided by __jute-annotations__ artifact and you can just add 
   <dependency>
     <groupId>com.igormaznitsa</groupId>
     <artifactId>jute-annotations</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <scope>test</scope>
   </dependency>
 </dependencies>
@@ -92,7 +95,7 @@ No problems, just define name of your class in __includes__ section of the plugi
     <plugin>
       <groupId>com.igormaznitsa</groupId>
       <artifactId>jute</artifactId>
-      <version>1.1.0</version>
+      <version>1.1.1</version>
       <executions>
         <execution>
           <goals>
@@ -121,7 +124,7 @@ Ok! In the case you just should define names or a mask for your test method name
     <plugin>
       <groupId>com.igormaznitsa</groupId>
       <artifactId>jute</artifactId>
-      <version>1.1.0</version>
+      <version>1.1.1</version>
       <executions>
         <execution>
           <goals>
