@@ -82,7 +82,7 @@ public void testC() throws Exception {
 ...
 }
 ```
-In the example, after test A execution, tests B and C will be started in parallel and process will be continued only when both tests are completed.
+In the example tests B and C will be started in parallel and process will be continued only when both tests are completed and order of the testA is -1 by default and it will be executed as the first one.
 # Hey! I want to use it only for several classes!
 No problems, just define name of your class in __includes__ section of the plugin configuration
 ```
