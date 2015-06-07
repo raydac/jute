@@ -12,7 +12,7 @@
   </prerequisites>
 
   <properties>
-    <parent.version>1.1.0-SNAPSHOT</parent.version>
+    <parent.version>1.1.0</parent.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <timestamp>${maven.build.timestamp}</timestamp>
