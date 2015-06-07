@@ -13,6 +13,7 @@ It is a small specific Maven plugin (of course it is relative small one because 
 - added support of 'skipTests' and 'maven.test.skip' properties, like in maven-surefire
 - added support of 'jute.test' property to be used from command line, like 'test' in maven-surefire
 - removed hard dependency to JUnit, now JUte can process tests and without JUnit as dependency
+- added configuration parameter 'onlyAnnotated' to work only with JUte annotated test methods and classes
 
 1.0.0
 - initial version
