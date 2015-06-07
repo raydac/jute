@@ -1,3 +1,6 @@
+1.1.1
+- reworked test class path generating mechanism, removed usage of jcabi-aether because sometime it throws NPE with complex settings.xml
+
 1.1.0
 - reworked project structure
 - added @JUteTest annotation to mark tests to be started with JUte (provided by the jute-annotations artefact)

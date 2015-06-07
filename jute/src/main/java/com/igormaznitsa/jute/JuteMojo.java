@@ -18,7 +18,6 @@ package com.igormaznitsa.jute;
 import com.igormaznitsa.jute.TestContainer.TestResult;
 import com.igormaznitsa.jute.runners.JUnitSingleTestMethodRunner;
 import com.igormaznitsa.jute.runners.JUteSingleTestMethodRunner;
-import com.jcabi.aether.Classpath;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -26,7 +25,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.*;
 import org.apache.commons.io.filefilter.*;
-import org.apache.commons.lang.SystemUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.*;
 import org.apache.maven.plugin.logging.Log;
@@ -36,6 +35,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.objectweb.asm.*;
+import org.apache.maven.artifact.Artifact;
 import org.springframework.util.AntPathMatcher;
 
 /**
@@ -63,9 +63,6 @@ public class JuteMojo extends AbstractMojo {
 
   @Parameter(defaultValue = "${project}", readonly = true)
   private MavenProject project;
-
-  @Parameter(defaultValue = "${session}", readonly = true)
-  private MavenSession session;
 
   /**
    * List of test method names to be included into testing. Wildcard pattern can
@@ -224,6 +221,26 @@ public class JuteMojo extends AbstractMojo {
    */
   @Parameter(name = "in")
   private String in;
+
+  /**
+   * The value contains folder of compiled test classes.
+   */
+  @Parameter(name = "testClassesDirectory", defaultValue = "${project.build.testOutputDirectory}")
+  private File testClassesDirectory;
+
+  /**
+   * The value contains folder of compiled project classes.
+   */
+  @Parameter(name = "classesDirectory", defaultValue = "${project.build.outputDirectory}")
+  private File classesDirectory;
+
+  public File getTestClassesDirectory() {
+    return this.testClassesDirectory;
+  }
+
+  public File getClassesDirectory() {
+    return this.classesDirectory;
+  }
 
   public String getIn() {
     return this.in;
@@ -434,6 +451,26 @@ public class JuteMojo extends AbstractMojo {
     return result;
   }
 
+  private Collection<File> getClassPathAsFiles() {
+    final List<File> result = new ArrayList<File>();
+    if (this.testClassesDirectory != null) {
+      result.add(this.testClassesDirectory);
+    }
+    if (this.classesDirectory != null) {
+      result.add(this.classesDirectory);
+    }
+
+    for (final Artifact a : project.getArtifacts()) {
+      if (a.getArtifactHandler().isAddedToClasspath()) {
+        File file = a.getFile();
+        if (file != null) {
+          result.add(file);
+        }
+      }
+    }
+    return result;
+  }
+
   private String makeClassPath(final File mojoJarPath, final Collection<File> files) {
     final StringBuilder result = new StringBuilder();
 
@@ -459,7 +496,7 @@ public class JuteMojo extends AbstractMojo {
       return;
     }
 
-    final File testFolder = new File(this.project.getBuild().getTestOutputDirectory());
+    final File testFolder = this.testClassesDirectory;
     if (!testFolder.isDirectory()) {
       getLog().info("No test folder");
       return;
@@ -475,7 +512,7 @@ public class JuteMojo extends AbstractMojo {
     }
 
     final File javaInterpreter = getFilePathToJVMInterpreter(this.java);
-    final String testClassPath = makeClassPath(pathToMojoJar, new Classpath(project, new File(session.getLocalRepository().getBasedir()), "test"));
+    final String testClassPath = makeClassPath(pathToMojoJar, getClassPathAsFiles());
 
     final TestContainer baseTestConfig = new TestContainer(null, null, null, javaInterpreter == null ? this.java : javaInterpreter.getAbsolutePath(), this.jvmOptions, this.in, -1, this.enforcePrintConsole, false, this.timeout);
 

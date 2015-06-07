@@ -53,6 +53,8 @@
             </property>
           </javaProperties>
           <juteTest>some.package.DefaultTest#Method</juteTest>
+          <classesDirectory>target/classes</classesDirectory>
+          <testClassesDirectory>target/test-classes</testClassesDirectory>
         </configuration>
       </plugin>
     </plugins>

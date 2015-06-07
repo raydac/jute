@@ -61,6 +61,8 @@ public class JuteMojoTest extends AbstractMojoTestCase {
     assertFalse(myMojo.isSkipTests());
     assertFalse(myMojo.isEnforcePrintConsole());
     assertNull(myMojo.getJUteTest());
+    assertNull(myMojo.getClassesDirectory());
+    assertNull(myMojo.getTestClassesDirectory());
   }
 
   public void testNonDefaultConfig() throws Exception {
@@ -93,5 +95,7 @@ public class JuteMojoTest extends AbstractMojoTestCase {
     assertTrue(myMojo.isEnforcePrintConsole());
     assertEquals("Some test text",myMojo.getIn());
     assertEquals("some.package.DefaultTest#Method", myMojo.getJUteTest());
+    assertEquals("target/classes",myMojo.getClassesDirectory().toString());
+    assertEquals("target/test-classes",myMojo.getTestClassesDirectory().toString());
   }
 }
