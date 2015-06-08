@@ -21,6 +21,27 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class IntegrationTest extends AbstractJUteITTest {
+
+  @Test
+  public void testSurefireAndJUteTogether() throws Exception {
+    final Verifier verifier = verify("SurefireAndJUteTogether", false);
+
+    final List<String> junitSection = extractJUnitSection(verifier);
+    final List<String> juteSection = extractJuteSection(verifier);
+    
+    assertPattern("Tests run: 3, Failures: 0, Errors: 0, Skipped: 1,", junitSection);
+    assertPattern("JUTestA", junitSection);
+    assertPattern("JUTestC", junitSection);
+    assertNoPattern("JUTestB", junitSection);
+
+    assertPattern("Tests run: 3, Errors: 0, Skipped: 1,", juteSection);
+    assertPattern("Detected 3 potential test method\\(s\\)", juteSection);
+    assertNoPattern("JUTest", juteSection);
+    assertPattern("testJUteA\\.+OK", juteSection);
+    assertPattern("testJUteB\\.+SKIPPED", juteSection);
+    assertPattern("testJUteC\\.+OK", juteSection);
+  }
+  
   @Test
   public void testSkipAllTests() throws Exception {
     final Verifier verifier = verify("skipAllTests", false);

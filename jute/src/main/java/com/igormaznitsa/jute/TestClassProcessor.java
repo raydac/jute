@@ -31,11 +31,11 @@ final class TestClassProcessor extends ClassVisitor {
   private final Log logger;
   private final boolean onlyAnnotated;
   private final TestContainer baseParameters;
-  private TestContainer clazzParameters;
+  private TestContainer clazzJuteTestParameters;
   private boolean inappropriateClass;
-  
+
   private final String juteTestParameter;
-  
+
   TestClassProcessor(final boolean onlyAnnotated, final String juteTestParameter, final String classFilePath, final TestContainer baseParameters, final Log logger, final List<TestContainer> resultList, final String[] includedTestPatterns, final String[] excludedTestPatterns) {
     super(Opcodes.ASM5);
     this.onlyAnnotated = onlyAnnotated;
@@ -82,13 +82,26 @@ final class TestClassProcessor extends ClassVisitor {
     return result;
   }
 
+  private boolean isTestCanBeListed(final TestContainer testMethod) {
+    boolean result = false;
+    if (testMethod != null) {
+      if (this.onlyAnnotated) {
+        result = testMethod.isJUteTest();
+      }
+      else {
+        result = testMethod.isJUnitTest() || testMethod.isJUteTest();
+      }
+    }
+    return result;
+  }
+
   @Override
   public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
     if (this.inappropriateClass) {
       return null;
     }
 
-    if (((access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE | Opcodes.ACC_STATIC)) != 0) || (this.classJUnitIgnoreFlag && !this.onlyAnnotated) || !desc.equals("()V") || name.startsWith("<")) {
+    if (((access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE | Opcodes.ACC_STATIC)) != 0) || !desc.equals("()V") || name.startsWith("<")) {
       return null;
     }
     final boolean foundInExcludedList = isTestIncluded(desc);
@@ -107,15 +120,15 @@ final class TestClassProcessor extends ClassVisitor {
     }
 
     return new MethodVisitor(Opcodes.ASM5) {
-      boolean junitTest;
-      boolean juteTest;
-      boolean junitIgnore;
-      TestContainer detectedMethod;
+      private boolean junitTest;
+      private boolean juteTest;
+      private boolean junitIgnore;
+      private TestContainer detectedMethod;
 
       @Override
       public AnnotationVisitor visitAnnotation(final String desc, final boolean visible) {
         if (detectedMethod == null) {
-          detectedMethod = new TestContainer(classFilePath, className, name, clazzParameters == null ? baseParameters : clazzParameters, null);
+          detectedMethod = new TestContainer(classFilePath, className, name, clazzJuteTestParameters == null ? baseParameters : clazzJuteTestParameters, null);
         }
 
         AnnotationVisitor result = null;
@@ -134,16 +147,18 @@ final class TestClassProcessor extends ClassVisitor {
 
       @Override
       public void visitEnd() {
-        if (detectedMethod == null) {
-          detectedMethod = new TestContainer(classFilePath, className, name, clazzParameters == null ? baseParameters : clazzParameters, null);
+        if (this.detectedMethod == null) {
+          this.detectedMethod = new TestContainer(classFilePath, className, name, clazzJuteTestParameters == null ? baseParameters : clazzJuteTestParameters, null);
         }
-        
-        this.juteTest = this.juteTest || clazzParameters!=null;
-        
-        if ((this.junitTest || this.juteTest) && Utils.checkClassAndMethodForPattern(juteTestParameter,detectedMethod.getClassName(), detectedMethod.getMethodName(), false)){
-          detectedMethod.setJUnitIgnore(this.junitIgnore);
-          detectedMethod.setJUnitTest(this.junitTest);
-          detectedMethod.setJuteTest(this.juteTest);
+        this.juteTest = this.juteTest || clazzJuteTestParameters != null;
+
+        this.detectedMethod.setJUnitIgnore(this.junitIgnore);
+        this.detectedMethod.setJUnitTest(this.junitTest);
+        this.detectedMethod.setJuteTest(this.juteTest);
+
+        if ((this.junitTest || this.juteTest) 
+                && Utils.checkClassAndMethodForPattern(juteTestParameter, this.detectedMethod.getClassName(), this.detectedMethod.getMethodName(), false) 
+                && isTestCanBeListed(this.detectedMethod)) {
           detectedTestMethodList.add(detectedMethod);
         }
       }
@@ -165,40 +180,44 @@ final class TestClassProcessor extends ClassVisitor {
     AnnotationVisitor result = null;
     if (JuteMojo.ANNO_IGNORE.equals(desc)) {
       this.classJUnitIgnoreFlag = true;
-      if (this.clazzParameters == null) {
-        this.clazzParameters = new TestContainer(this.classFilePath, this.className, "", this.baseParameters, null);
+      if (this.clazzJuteTestParameters == null) {
+        this.clazzJuteTestParameters = new TestContainer(this.classFilePath, this.className, "", this.baseParameters, null);
       }
-      this.clazzParameters.setJUnitIgnore(true);
+      this.clazzJuteTestParameters.setJUnitIgnore(true);
     }
     else if (JuteMojo.ANNO_JUTE.equals(desc)) {
-      if (this.clazzParameters == null) {
-        this.clazzParameters = new TestContainer(this.classFilePath, this.className, "", this.baseParameters, null);
+      if (this.clazzJuteTestParameters == null) {
+        this.clazzJuteTestParameters = new TestContainer(this.classFilePath, this.className, "", this.baseParameters, null);
       }
-      this.clazzParameters.setJuteTest(true);
-      result = this.clazzParameters;
+      this.clazzJuteTestParameters.setJuteTest(true);
+      result = this.clazzJuteTestParameters;
     }
     return result;
   }
 
-  public String getClassName(){
+  public String getClassName() {
     return this.className;
   }
-  
-  public TestContainer getClassJUteParameters(){
-    return this.clazzParameters;
+
+  public TestContainer getClassJUteParameters() {
+    return this.clazzJuteTestParameters;
   }
-  
+
   @Override
-  public int hashCode(){
+  public int hashCode() {
     return this.classFilePath.hashCode();
   }
-  
+
   @Override
-  public boolean equals(final Object obj){
-    if (obj == null) return false;
-    if (obj == this) return true;
-    if (obj instanceof TestClassProcessor){
-       return this.classFilePath.equals(((TestClassProcessor)obj).classFilePath);
+  public boolean equals(final Object obj) {
+    if (obj == null) {
+      return false;
+    }
+    if (obj == this) {
+      return true;
+    }
+    if (obj instanceof TestClassProcessor) {
+      return this.classFilePath.equals(((TestClassProcessor) obj).classFilePath);
     }
     return false;
   }

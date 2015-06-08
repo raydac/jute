@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.*;
 import org.apache.commons.io.filefilter.*;
 import org.apache.commons.lang3.SystemUtils;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.*;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -546,6 +545,7 @@ public class JuteMojo extends AbstractMojo {
 
     final AtomicInteger startedCounter = new AtomicInteger();
     final AtomicInteger errorCounter = new AtomicInteger();
+    final AtomicInteger skippedCounter = new AtomicInteger();
 
     int maxTestNameLength = 0;
     for (final Map.Entry<TestClassProcessor, List<TestContainer>> e : extractedTestMethods.entrySet()) {
@@ -572,7 +572,7 @@ public class JuteMojo extends AbstractMojo {
         try {
           logStrings.clear();
           final int prevStartIndex = nextTestIndex;
-          final int numberOfExecuted = executeNextTestsFromList(logStrings, maxTestNameLength, testClassPath, e.getValue(), prevStartIndex, startedCounter, errorCounter);
+          final int numberOfExecuted = executeNextTestsFromList(logStrings, maxTestNameLength, testClassPath, e.getValue(), prevStartIndex, startedCounter, errorCounter, skippedCounter);
           getLog().debug("Executed " + numberOfExecuted + " test(s)");
           printExecutionResultIntoLog(nextTestIndex + numberOfExecuted >= e.getValue().size(), logStrings);
           nextTestIndex += numberOfExecuted;
@@ -585,7 +585,7 @@ public class JuteMojo extends AbstractMojo {
     }
 
     final long delay = System.currentTimeMillis() - startTime;
-    getLog().info(String.format("Tests run: %d, Errors: %d, Total time: %s", startedCounter.get(), errorCounter.get(), Utils.printTimeDelay(delay)));
+    getLog().info(String.format("Tests run: %d, Errors: %d, Skipped: %d, Total time: %s", startedCounter.get(), errorCounter.get(), skippedCounter.get(), Utils.printTimeDelay(delay)));
 
     if (errorCounter.get() != 0) {
       throw new MojoFailureException("Detected failed tests, see session log");
@@ -699,7 +699,7 @@ public class JuteMojo extends AbstractMojo {
     return result;
   }
 
-  private int executeNextTestsFromList(final List<String> logStrings, final int maxTestNameLength, final String testClassPath, final List<TestContainer> testContainers, final int startIndex, final AtomicInteger startedCounter, final AtomicInteger errorCounter) throws Exception {
+  private int executeNextTestsFromList(final List<String> logStrings, final int maxTestNameLength, final String testClassPath, final List<TestContainer> testContainers, final int startIndex, final AtomicInteger startedCounter, final AtomicInteger errorCounter, final AtomicInteger skippedCounter) throws Exception {
     final List<TestContainer> toExecute = new ArrayList<TestContainer>();
 
     int detectedOrder = -1;
@@ -750,8 +750,16 @@ public class JuteMojo extends AbstractMojo {
             startedCounter.incrementAndGet();
             final TestResult result = container.executeTest(getLog(), onlyAnnotated, maxTestNameLength, testClassPath, javaProperties, env);
             final long endTime = System.currentTimeMillis();
-            if (result == TestResult.ERROR || result == TestResult.TIMEOUT) {
-              errorCounter.incrementAndGet();
+            switch (result) {
+              case ERROR:
+              case TIMEOUT: {
+                errorCounter.incrementAndGet();
+              }
+              break;
+              case SKIPPED: {
+                skippedCounter.incrementAndGet();
+              }
+              break;
             }
 
             if (logStrings != null) {

@@ -88,6 +88,9 @@ public abstract class AbstractJUteITTest {
       if (juteSection) {
         if (s.startsWith("[INFO] Tests run:") || s.startsWith("[INFO] --- ")) {
           juteSection = false;
+          if (s.contains("Tests")){
+            result.add(s);
+          }
         }
         else {
           result.add(s);

@@ -1,3 +1,6 @@
+1.1.2
+- improved statistics of skipped tests, removed info about skipped JUnit tests if the onlyAnnotated flag is active
+
 1.1.1
 - reworked test class path generating mechanism, removed usage of jcabi-aether because sometime it throws NPE with complex settings.xml
 
