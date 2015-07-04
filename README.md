@@ -155,3 +155,7 @@ No problems! Just add flag to enforce pring console output of external processes
 
 # I want to start only jute goal! How to do that?!
 Just execute ```mvn test:jute``` and only jute goal will be executeed by maven for your project.  
+
+# Donation   
+If you like the software you can make some donation to the author   
+[![https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AHWJHJFBAWGL2)
